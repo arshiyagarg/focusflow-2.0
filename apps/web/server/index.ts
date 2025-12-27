@@ -13,7 +13,7 @@ if (typeof globalThis.crypto.randomUUID !== 'function') {
 
 import express from "express";
 import dotenv from "dotenv";
-import authRoutes from "./routes/auth"
+import authRoutes from "./routes/auth";
 import cors from "cors";
 
 import { connectDB } from "./lib/db.config";

@@ -10,4 +10,5 @@ export interface User {
 
   createdAt: string;               //ISO timestamp
   lastLogin: string;               // ISO timestamp
+  type: "USER";
 }
