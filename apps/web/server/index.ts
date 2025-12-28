@@ -22,6 +22,7 @@ if (typeof globalThis.crypto.randomUUID !== 'function') {
 
 dotenv.config();
 import progressRoutes from "./routes/progress.routes";
+import { checkBlobConnection } from "./lib/blob.config";
 
 
 const PORT = process.env.PORT;
@@ -45,4 +46,6 @@ app.use("/progress", progressRoutes);
 app.listen(PORT, async () => {
     console.log(`Server Starting : http://localhost:${PORT}`);
     await connectDB();
+    await checkBlobConnection();
 })
+
