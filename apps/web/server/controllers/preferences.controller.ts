@@ -1,15 +1,23 @@
 import { Request, Response } from "express";
 import { PreferencesContainer } from "../lib/db.config";
-import { OpenAIClient, AzureKeyCredential } from "@azure/openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Ensure variables are checked during startup
-const endpoint = process.env.AZURE_OPENAI_ENDPOINT || "";
-const azureKey = process.env.AZURE_OPENAI_KEY || "";
 
-const aiClient = new OpenAIClient(
-  endpoint,
-  new AzureKeyCredential(azureKey)
-);
+/*
+import OpenAI from "openai";
+const client = new OpenAI({
+  apiKey: process.env.AZURE_OPENAI_KEY,
+  baseURL: `${process.env.AZURE_OPENAI_ENDPOINT}/openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT_NAME}`,
+  defaultQuery: { "api-version": "2024-06-01" },
+  defaultHeaders: { "api-key": process.env.AZURE_OPENAI_KEY },
+});
+*/
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const model = genAI.getGenerativeModel({ 
+  model: "gemini-2.5-flash",
+  generationConfig: { responseMimeType: "application/json" } // Ensures valid JSON
+});
 
 export const saveUserPreferences = async (req: Request, res: Response) => {
   try {
@@ -18,44 +26,45 @@ export const saveUserPreferences = async (req: Request, res: Response) => {
 
     if (!user) return res.status(401).json({ error: "Unauthorized" });
 
-    const deploymentId = process.env.AZURE_OPENAI_DEPLOYMENT_NAME || "gpt-4o";
+    console.log(`[Gemini-AI] Processing focus profile for user: ${user.id}`);
 
-    console.log(`[AI-Foundry] Attempting deployment: ${deploymentId}`);
+    const prompt = `
+      Analyze these ADHD study habits and return a JSON object ONLY.
+      Data: ${JSON.stringify(preferencesData)}
+      Required Schema:
+      {
+        "adhdLevel": number (1-5),
+        "focusIntensity": "low" | "moderate" | "high",
+        "sensoryNeeds": string[],
+        "recommendedPomodoro": number,
+        "personalizedInsight": string
+      }
+    `;
 
-    const systemPrompt = `Analyze study habits for ADHD. Return JSON ONLY: { "adhdLevel": 1-5, "focusIntensity": "string", "sensoryNeeds": [], "recommendedPomodoro": number }`;
-
-    const aiResponse = await aiClient.getChatCompletions(deploymentId, [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: JSON.stringify(preferencesData) }
-    ]);
-
-    const rawContent = aiResponse.choices[0].message?.content || "{}";
-    const evaluation = JSON.parse(rawContent);
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    const evaluation = JSON.parse(responseText);
 
     const finalRecord = {
-      id: user.id,
+      id: user.id, // Using userId as id to prevent duplication
       userId: user.id,
       ...preferencesData,
       aiEvaluation: evaluation,
       lastEdit: new Date().toISOString()
     };
 
+    // Upsert ensures we update existing preferences for the same user
     await PreferencesContainer.items.upsert(finalRecord);
+    
+    console.log("Gemini reasoning saved successfully to Cosmos DB");
     res.status(200).json({ success: true, evaluation });
 
   } catch (error: any) {
-    // Enhanced logging to capture "undefined" errors
-    console.error("--- AZURE AI ERROR DEBUG ---");
-    console.error("Error Object:", JSON.stringify(error, null, 2));
-    console.error("Error Message:", error?.message);
-    console.error("Stack Trace:", error?.stack);
-    console.log("Current Endpoint:", endpoint);
-    console.log("Current Deployment:", process.env.AZURE_OPENAI_DEPLOYMENT_NAME);
- 
-
+    console.error("--- GEMINI AI ERROR ---");
+    console.error(error.message);
     res.status(500).json({ 
-      error: "Failed to process AI reasoning", 
-      details: error?.message || "Connection refused or invalid credentials" 
+      error: "Failed to process AI reasoning with Gemini", 
+      details: error.message 
     });
   }
 };
