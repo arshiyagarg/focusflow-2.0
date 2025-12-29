@@ -1,214 +1,275 @@
+import crypto from "crypto";
 import { Request, Response } from "express";
-import { v4 as uuidv4 } from "uuid";
-import {
-  Content_outputs,
-  InputType,
-  ProcessingStatus,
-  OutputFormat,
-} from "../models/content_outputs";
 import { Content_outputsContainer } from "../lib/db.config";
-import { getContainerClient } from "../lib/blob.config";
 
-/**
- * STEP 1 — Create content output after RAW upload
- * status = UPLOADED
- */
 export const createContentOutput = async (req: Request, res: Response) => {
-  try {
-    const userId = req.user.id;
+  const userId = req.user.id;
+  const { inputType, rawStorageRef } = req.body;
 
-    const { inputType, rawStorageRef } = req.body;
-
-    if (!inputType || !rawStorageRef) {
-      return res.status(400).json({ message: "Missing required fields" });
-    }
-
-    const contentId = uuidv4();
-
-    const contentOutput: Content_outputs = {
-      id: contentId,
-      contentId,
-      userId,
-
-      inputType: inputType as InputType,
-      rawStorageRef,
-
-      status: "UPLOADED",
-
-      createdAt: new Date().toISOString(),
-      type: "CONTENT_OUTPUT",
-    };
-
-    await Content_outputsContainer.items.create(contentOutput);
-
-    res.status(201).json(contentOutput);
-  } catch (error) {
-    console.error("[content_outputs] create error:", error);
-    res.status(500).json({ message: "Failed to create content output" });
+  if (!inputType || !rawStorageRef) {
+    return res.status(400).json({ message: "Missing fields" });
   }
+
+  const contentId = crypto.randomUUID();
+
+  await Content_outputsContainer.items.create({
+    id: contentId,
+    contentId,
+    userId,
+    inputType,
+    rawStorageRef,
+    status: "UPLOADED",
+    createdAt: new Date().toISOString(),
+    type: "CONTENT_OUTPUT",
+  });
+
+  res.status(201).json({
+    contentId,
+    status: "UPLOADED",
+  });
 };
 
-/**
- * STEP 2 — Mark processing started
- * status = PROCESSING
- */
-export const markProcessing = async (req: Request, res: Response) => {
-  try {
-    const { contentId } = req.params;
-    const userId = req.user.id;
+export const getContentOutputById = async (req: Request, res: Response) => {
+  const { contentId } = req.params;
+  const userId = req.user.id;
 
-    const { resource } =
-      await Content_outputsContainer.item(contentId, userId).read();
+  const { resource } =
+    await Content_outputsContainer.item(contentId, userId).read();
 
-    if (!resource) {
-      return res.status(404).json({ message: "Content output not found" });
-    }
-
-    resource.status = "PROCESSING";
-    await Content_outputsContainer
-      .item(contentId, userId)
-      .replace(resource);
-
-    res.status(200).json(resource);
-  } catch (error) {
-    console.error("[content_outputs] processing error:", error);
-    res.status(500).json({ message: "Failed to mark processing" });
+  if (!resource) {
+    return res.status(404).json({ message: "Not found" });
   }
+
+  res.json({
+    contentId: resource.contentId,
+    status: resource.status,
+    outputFormat: resource.outputFormat,
+    processed:
+      resource.status === "READY"
+        ? {
+            blobName: resource.processedBlobName,
+            container: resource.processedContainerName,
+          }
+        : null,
+    errorMessage: resource.errorMessage,
+  });
 };
 
-/**
- * STEP 3 — Save processed output
- * status = READY
- */
-export const markProcessingComplete = async (
-  req: Request,
-  res: Response
-) => {
-  try {
-    const { contentId } = req.params;
-    const userId = req.user.id;
 
-    const {
-      processedStorageRef,
-      processedBlobName,
-      outputFormat,
-    } = req.body;
 
-    if (!processedStorageRef || !processedBlobName || !outputFormat) {
-      return res.status(400).json({ message: "Missing processed output data" });
-    }
 
-    const { resource } =
-      await Content_outputsContainer.item(contentId, userId).read();
 
-    if (!resource) {
-      return res.status(404).json({ message: "Content output not found" });
-    }
+// import { Request, Response } from "express";
+// import { v4 as uuidv4 } from "uuid";
+// import {
+//   Content_outputs,
+//   InputType,
+//   ProcessingStatus,
+//   OutputFormat,
+// } from "../models/content_outputs";
+// import { Content_outputsContainer } from "../lib/db.config";
+// import { getContainerClient } from "../lib/blob.config";
 
-    resource.processedStorageRef = processedStorageRef;
-    resource.processedBlobName = processedBlobName;
-    resource.processedContainerName = "content-processed";
-    resource.outputFormat = outputFormat as OutputFormat;
+// /**
+//  * STEP 1 — Create content output after RAW upload
+//  * status = UPLOADED
+//  */
+// export const createContentOutput = async (req: Request, res: Response) => {
+//   try {
+//     const userId = req.user.id;
 
-    resource.status = "READY";
-    resource.processedAt = new Date().toISOString();
+//     const { inputType, rawStorageRef } = req.body;
 
-    await Content_outputsContainer
-      .item(contentId, userId)
-      .replace(resource);
+//     if (!inputType || !rawStorageRef) {
+//       return res.status(400).json({ message: "Missing required fields" });
+//     }
 
-    res.status(200).json(resource);
-  } catch (error) {
-    console.error("[content_outputs] complete error:", error);
-    res.status(500).json({ message: "Failed to save processed output" });
-  }
-};
+//     const contentId = uuidv4();
 
-/**
- * STEP 4 — Mark processing failed
- */
-export const markProcessingFailed = async (
-  req: Request,
-  res: Response
-) => {
-  try {
-    const { contentId } = req.params;
-    const userId = req.user.id;
-    const { errorMessage } = req.body;
+//     const contentOutput: Content_outputs = {
+//       id: contentId,
+//       contentId,
+//       userId,
 
-    const { resource } =
-      await Content_outputsContainer.item(contentId, userId).read();
+//       inputType: inputType as InputType,
+//       rawStorageRef,
 
-    if (!resource) {
-      return res.status(404).json({ message: "Content output not found" });
-    }
+//       status: "UPLOADED",
 
-    resource.status = "FAILED";
-    resource.errorMessage = errorMessage || "Processing failed";
+//       createdAt: new Date().toISOString(),
+//       type: "CONTENT_OUTPUT",
+//     };
 
-    await Content_outputsContainer
-      .item(contentId, userId)
-      .replace(resource);
+//     await Content_outputsContainer.items.create(contentOutput);
 
-    res.status(200).json(resource);
-  } catch (error) {
-    console.error("[content_outputs] failed error:", error);
-    res.status(500).json({ message: "Failed to mark processing failed" });
-  }
-};
+//     res.status(201).json(contentOutput);
+//   } catch (error) {
+//     console.error("[content_outputs] create error:", error);
+//     res.status(500).json({ message: "Failed to create content output" });
+//   }
+// };
 
-/**
- * GET — Only READY outputs for dashboard
- */
-export const getMyContentOutputs = async (
-  req: Request,
-  res: Response
-) => {
-  try {
-    const userId = req.user.id;
+// /**
+//  * STEP 2 — Mark processing started
+//  * status = PROCESSING
+//  */
+// export const markProcessing = async (req: Request, res: Response) => {
+//   try {
+//     const { contentId } = req.params;
+//     const userId = req.user.id;
 
-    const query = {
-      query: `
-        SELECT * FROM c
-        WHERE c.userId = @userId
-          AND c.type = "CONTENT_OUTPUT"
-          AND c.status = "READY"
-        ORDER BY c.createdAt DESC
-      `,
-      parameters: [{ name: "@userId", value: userId }],
-    };
+//     const { resource } =
+//       await Content_outputsContainer.item(contentId, userId).read();
 
-    const { resources } =
-      await Content_outputsContainer.items.query(query).fetchAll();
+//     if (!resource) {
+//       return res.status(404).json({ message: "Content output not found" });
+//     }
 
-    res.status(200).json(resources);
-  } catch (error) {
-    console.error("[content_outputs] fetch error:", error);
-    res.status(500).json({ message: "Failed to fetch content outputs" });
-  }
-};
+//     resource.status = "PROCESSING";
+//     await Content_outputsContainer
+//       .item(contentId, userId)
+//       .replace(resource);
 
-/**
- * GET — Single content output
- */
-export const getContentOutputById = async (
-  req: Request,
-  res: Response
-) => {
-  try {
-    const { contentId } = req.params;
-    const userId = req.user.id;
+//     res.status(200).json(resource);
+//   } catch (error) {
+//     console.error("[content_outputs] processing error:", error);
+//     res.status(500).json({ message: "Failed to mark processing" });
+//   }
+// };
 
-    const { resource } =
-      await Content_outputsContainer.item(contentId, userId).read();
+// /**
+//  * STEP 3 — Save processed output
+//  * status = READY
+//  */
+// export const markProcessingComplete = async (
+//   req: Request,
+//   res: Response
+// ) => {
+//   try {
+//     const { contentId } = req.params;
+//     const userId = req.user.id;
 
-    if (!resource || resource.status !== "READY") {
-      return res.status(404).json({ message: "Content not available" });
-    }
+//     const {
+//       processedStorageRef,
+//       processedBlobName,
+//       outputFormat,
+//     } = req.body;
 
-    res.status(200).json(resource);
-  } catch (error) {
-    console.error("[content_outputs] getById error:", error);
-    res.status(500).json({ message: "Failed to fetch content output" });
-  }
-};
+//     if (!processedStorageRef || !processedBlobName || !outputFormat) {
+//       return res.status(400).json({ message: "Missing processed output data" });
+//     }
+
+//     const { resource } =
+//       await Content_outputsContainer.item(contentId, userId).read();
+
+//     if (!resource) {
+//       return res.status(404).json({ message: "Content output not found" });
+//     }
+
+//     resource.processedStorageRef = processedStorageRef;
+//     resource.processedBlobName = processedBlobName;
+//     resource.processedContainerName = "content-processed";
+//     resource.outputFormat = outputFormat as OutputFormat;
+
+//     resource.status = "READY";
+//     resource.processedAt = new Date().toISOString();
+
+//     await Content_outputsContainer
+//       .item(contentId, userId)
+//       .replace(resource);
+
+//     res.status(200).json(resource);
+//   } catch (error) {
+//     console.error("[content_outputs] complete error:", error);
+//     res.status(500).json({ message: "Failed to save processed output" });
+//   }
+// };
+
+// /**
+//  * STEP 4 — Mark processing failed
+//  */
+// export const markProcessingFailed = async (
+//   req: Request,
+//   res: Response
+// ) => {
+//   try {
+//     const { contentId } = req.params;
+//     const userId = req.user.id;
+//     const { errorMessage } = req.body;
+
+//     const { resource } =
+//       await Content_outputsContainer.item(contentId, userId).read();
+
+//     if (!resource) {
+//       return res.status(404).json({ message: "Content output not found" });
+//     }
+
+//     resource.status = "FAILED";
+//     resource.errorMessage = errorMessage || "Processing failed";
+
+//     await Content_outputsContainer
+//       .item(contentId, userId)
+//       .replace(resource);
+
+//     res.status(200).json(resource);
+//   } catch (error) {
+//     console.error("[content_outputs] failed error:", error);
+//     res.status(500).json({ message: "Failed to mark processing failed" });
+//   }
+// };
+
+// /**
+//  * GET — Only READY outputs for dashboard
+//  */
+// export const getMyContentOutputs = async (
+//   req: Request,
+//   res: Response
+// ) => {
+//   try {
+//     const userId = req.user.id;
+
+//     const query = {
+//       query: `
+//         SELECT * FROM c
+//         WHERE c.userId = @userId
+//           AND c.type = "CONTENT_OUTPUT"
+//           AND c.status = "READY"
+//         ORDER BY c.createdAt DESC
+//       `,
+//       parameters: [{ name: "@userId", value: userId }],
+//     };
+
+//     const { resources } =
+//       await Content_outputsContainer.items.query(query).fetchAll();
+
+//     res.status(200).json(resources);
+//   } catch (error) {
+//     console.error("[content_outputs] fetch error:", error);
+//     res.status(500).json({ message: "Failed to fetch content outputs" });
+//   }
+// };
+
+// /**
+//  * GET — Single content output
+//  */
+// export const getContentOutputById = async (
+//   req: Request,
+//   res: Response
+// ) => {
+//   try {
+//     const { contentId } = req.params;
+//     const userId = req.user.id;
+
+//     const { resource } =
+//       await Content_outputsContainer.item(contentId, userId).read();
+
+//     if (!resource || resource.status !== "READY") {
+//       return res.status(404).json({ message: "Content not available" });
+//     }
+
+//     res.status(200).json(resource);
+//   } catch (error) {
+//     console.error("[content_outputs] getById error:", error);
+//     res.status(500).json({ message: "Failed to fetch content output" });
+//   }
+// };

@@ -31,32 +31,75 @@ export const uploadFile = async (req: Request, res: Response) => {
   }
 };
 
+// export const getDownloadUrl = async (req: Request, res: Response) => {
+//   try {
+//     const { blobName, inputType } = req.body;
+    
+//     console.log("Curr Req: ", req);
+
+//     if (!blobName || !inputType) {
+//       return res.status(400).json({ message: "Missing blobName or inputType" });
+//     }
+
+//     const containerClient = getContainerClient(inputType);
+//     if (!containerClient) return res.status(400).json({ message: "Invalid inputType" });
+
+//     const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+    
+//     const exists = await blockBlobClient.exists();
+//     if (!exists) return res.status(404).json({ message: "Blob not found" });
+
+//     const sasToken = await blockBlobClient.generateSasUrl({
+//       permissions: BlobSASPermissions.parse("r"),
+//       expiresOn: new Date(new Date().valueOf() + 3600 * 1000),
+//     });
+
+//     res.status(200).json({ downloadUrl: sasToken });
+//   } catch (error) {
+//     console.error("[storage] Retrieval error:", error);
+//     res.status(500).json({ message: "Failed to generate download URL" });
+//   }
+// };
+
 export const getDownloadUrl = async (req: Request, res: Response) => {
   try {
-    const { blobName, inputType } = req.body;
-    
-    console.log("Curr Req: ", req);
+    const { blobName, inputType } = req.body as {
+      blobName: string;
+      inputType: InputType;
+    };
 
     if (!blobName || !inputType) {
-      return res.status(400).json({ message: "Missing blobName or inputType" });
+      return res.status(400).json({
+        message: "Missing blobName or inputType",
+      });
     }
 
+    // ✅ Supports: text | audio | video | processed
     const containerClient = getContainerClient(inputType);
-    if (!containerClient) return res.status(400).json({ message: "Invalid inputType" });
+    if (!containerClient) {
+      return res.status(400).json({
+        message: "Invalid inputType",
+      });
+    }
 
-    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
-    
+    const blockBlobClient =
+      containerClient.getBlockBlobClient(blobName);
+
     const exists = await blockBlobClient.exists();
-    if (!exists) return res.status(404).json({ message: "Blob not found" });
+    if (!exists) {
+      return res.status(404).json({ message: "Blob not found" });
+    }
 
-    const sasToken = await blockBlobClient.generateSasUrl({
+    const sasUrl = await blockBlobClient.generateSasUrl({
       permissions: BlobSASPermissions.parse("r"),
-      expiresOn: new Date(new Date().valueOf() + 3600 * 1000),
+      expiresOn: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
     });
 
-    res.status(200).json({ downloadUrl: sasToken });
+    res.status(200).json({ downloadUrl: sasUrl });
   } catch (error) {
     console.error("[storage] Retrieval error:", error);
-    res.status(500).json({ message: "Failed to generate download URL" });
+    res.status(500).json({
+      message: "Failed to generate download URL",
+    });
   }
 };

@@ -1,6 +1,7 @@
 import axios from "axios";
 import { uploadToBlob } from "../lib/blob.config";
 import { Content_outputsContainer } from "../lib/db.config";
+import { downloadBlobAsBuffer } from "../utils/blobdownloadhealper";
 
 // ✅ CORRECT pdfjs import for Node 20 + ESM
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
@@ -16,6 +17,37 @@ const model = genAI.getGenerativeModel({
   }
 });
 
+export const processPDFInBackground = async ({
+  contentId,
+  userId,
+}: {
+  contentId: string;
+  userId: string;
+}) => {
+  try {
+    const { resource } =
+      await Content_outputsContainer.item(contentId, userId).read();
+
+    if (!resource) throw new Error("Content not found");
+
+    const pdfBuffer = await downloadBlobAsBuffer(
+      resource.rawStorageRef
+    );
+
+    await processPDFToBionic({
+      contentId,
+      userId,
+      pdfBuffer,
+    });
+  } catch (err: any) {
+    await Content_outputsContainer
+      .item(contentId, userId)
+      .patch([
+        { op: "set", path: "/status", value: "FAILED" },
+        { op: "set", path: "/errorMessage", value: err.message },
+      ]);
+  }
+};
 
 /**
  * Extract text from PDF using pdfjs-dist
