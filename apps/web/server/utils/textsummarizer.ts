@@ -4,7 +4,8 @@ import { Content_outputsContainer } from "../lib/db.config";
 import { downloadBlobAsBuffer } from "../utils/blobdownloadhealper";
 
 // ✅ CORRECT pdfjs import for Node 20 + ESM
-import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+// import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import pdfjsLib from "pdfjs-dist/legacy/build/pdf";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
