@@ -2,12 +2,31 @@
   "manifest_version": 3,
   "name": "FocusFlow NeuroSync",
   "version": "1.0.0",
-  "permissions": ["storage", "activeTab", "scripting"],
-  "host_permissions": ["http://localhost:4000/*"],
-  "action": { "default_popup": "popup.html" },
-  "content_scripts": [{
-    "matches": ["<all_urls>"],
-    "js": ["content.js"],
-    "css": ["style.css"]
-  }]
+  "description": "ADHD-friendly reading, explanations, and Meet assistance.",
+  "permissions": ["storage", "activeTab", "scripting", "tabCapture",
+    "offscreen"],
+  "host_permissions": ["http://localhost:3000/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": { "default_popup": "popup/popup.html" },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "exclude_matches": ["*://meet.google.com/*"], 
+      "js": ["content/reading.js"],
+      "css": ["style.css"]
+    },
+    {
+      "matches": ["*://meet.google.com/*", "*://www.youtube.com/*"],
+      "js": ["content/meet.js"],
+      "css": ["style.css"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["offscreen.html"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }
