@@ -1,11 +1,11 @@
+import "dotenv/config";
 import crypto from "node:crypto";
 import express from "express";
-import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import authRoutes from "./routes/auth.route";
 import preferenceRoutes from "./routes/preferences.route";
-import contentOutputRoutes from "./routes/content_ouputs.routes";
+import contentOutputRoutes from "./routes/content_outputs.routes";
 import storageRoutes from "./routes/storage.routes";
 //import processingRoutes from "./routes/processing.routes";
 
@@ -20,9 +20,6 @@ if (typeof globalThis.crypto.randomUUID !== 'function') {
   // @ts-ignore
   globalThis.crypto.randomUUID = () => crypto.randomUUID();
 }
-
-
-dotenv.config();
 import progressRoutes from "./routes/progress.routes";
 import { checkBlobConnection } from "./lib/blob.config";
 
@@ -38,7 +35,7 @@ app.use(cors({
 app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/preferences", preferenceRoutes);
-app.use("/api/content-outputs", contentOutputRoutes);
+app.use("/api/content_outputs", contentOutputRoutes);
 app.use("/api/storage", storageRoutes);
 //app.use("/api/process", processingRoutes);
 
@@ -46,7 +43,7 @@ app.use("/api/storage", storageRoutes);
 app.get("/api/status", (req, res) => {
   res.json({ message: "Backend is reachable from Frontend", db: "Connected" });
 });
-app.use("/progress", progressRoutes);
+app.use("/api/progress", progressRoutes);
 
 app.listen(PORT, async () => {
     console.log(`Server Starting : http://localhost:${PORT}`);
