@@ -1,25 +1,24 @@
 import { create } from 'zustand';
+import axios from 'axios';
 
+// Backend URL from your Docker/server config
+const API_URL = "http://localhost:3001";
+
+// Ensure cookies (JWT) are sent with every request
+axios.defaults.withCredentials = true;
+
+// Interfaces remain the same as your current model
 export interface UserPreferences {
-  // Attention & Focus
   focusSessionLength: string;
   breakLength: string;
   focusBreakers: string[];
-  
-  // Content Format Preference
   preferredOutput: string;
   detailLevel: string;
-  
-  // Sensory Comfort
   colorTheme: string;
   audioSpeed: string;
   videoSpeed: string;
-  
-  // Learning Rhythm
   sessionStyle: string;
   progressTracking: string;
-  
-  // Self-Awareness
   energyLevel: string;
   scrollSpeed: string;
 }
@@ -28,215 +27,79 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  avatar?: string;
-  studyGoal?: string;
-  dailyGoalMinutes?: number;
-  preferredSubjects?: string[];
   preferences?: UserPreferences;
-}
-
-export interface StudyStreak {
-  currentStreak: number;
-  longestStreak: number;
-  lastStudyDate: string;
-  weeklyProgress: number[];
-}
-
-export interface StudyContent {
-  id: string;
-  type: 'text' | 'video';
-  title: string;
-  source: string;
-  uploadedAt: string;
-  status: 'processing' | 'ready' | 'error';
-  duration?: number;
-  progress?: number;
-}
-
-export interface StudySession {
-  id: string;
-  contentId: string;
-  startTime: string;
-  endTime?: string;
-  duration: number;
-  isActive: boolean;
 }
 
 interface AppState {
   user: User | null;
   isAuthenticated: boolean;
-  streak: StudyStreak;
-  contents: StudyContent[];
-  currentSession: StudySession | null;
-  
-  // Auth actions
+  contents: any[];
   login: (email: string, password: string) => Promise<boolean>;
   signup: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => void;
-  updateProfile: (updates: Partial<User>) => void;
-  
-  // Content actions
-  addContent: (content: Omit<StudyContent, 'id' | 'uploadedAt' | 'status'>) => void;
-  updateContentStatus: (id: string, status: StudyContent['status']) => void;
-  removeContent: (id: string) => void;
-  
-  // Session actions
-  startSession: (contentId: string) => void;
-  pauseSession: () => void;
-  resumeSession: () => void;
-  endSession: () => void;
+  updateProfile: (updates: Partial<User>) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
   user: null,
   isAuthenticated: false,
-  streak: {
-    currentStreak: 0,
-    longestStreak: 0,
-    lastStudyDate: '',
-    weeklyProgress: [0, 0, 0, 0, 0, 0, 0],
-  },
   contents: [],
-  currentSession: null,
 
-  login: async (email: string, password: string) => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    // For demo purposes, accept any login
-    set({
-      user: {
-        id: '1',
-        email,
-        name: email.split('@')[0],
-      },
-      isAuthenticated: true,
-      streak: {
-        currentStreak: 7,
-        longestStreak: 14,
-        lastStudyDate: new Date().toISOString(),
-        weeklyProgress: [45, 30, 60, 25, 50, 40, 55],
-      },
-    });
-    return true;
-  },
-
-  signup: async (email: string, password: string, name: string) => {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    set({
-      user: {
-        id: '1',
-        email,
-        name,
-      },
-      isAuthenticated: true,
-      streak: {
-        currentStreak: 0,
-        longestStreak: 0,
-        lastStudyDate: '',
-        weeklyProgress: [0, 0, 0, 0, 0, 0, 0],
-      },
-    });
-    return true;
-  },
-
-  logout: () => {
-    set({
-      user: null,
-      isAuthenticated: false,
-      streak: {
-        currentStreak: 0,
-        longestStreak: 0,
-        lastStudyDate: '',
-        weeklyProgress: [0, 0, 0, 0, 0, 0, 0],
-      },
-      contents: [],
-      currentSession: null,
-    });
-  },
-
-  updateProfile: (updates) => {
-    const { user } = get();
-    if (user) {
-      set({ user: { ...user, ...updates } });
-    }
-  },
-
-  addContent: (content) => {
-    const newContent: StudyContent = {
-      ...content,
-      id: Math.random().toString(36).substr(2, 9),
-      uploadedAt: new Date().toISOString(),
-      status: 'processing',
-      progress: 0,
-    };
-    set((state) => ({ contents: [...state.contents, newContent] }));
-    
-    // Simulate processing
-    setTimeout(() => {
-      get().updateContentStatus(newContent.id, 'ready');
-    }, 3000);
-  },
-
-  updateContentStatus: (id, status) => {
-    set((state) => ({
-      contents: state.contents.map((c) =>
-        c.id === id ? { ...c, status } : c
-      ),
-    }));
-  },
-
-  removeContent: (id) => {
-    set((state) => ({
-      contents: state.contents.filter((c) => c.id !== id),
-    }));
-  },
-
-  startSession: (contentId) => {
-    set({
-      currentSession: {
-        id: Math.random().toString(36).substr(2, 9),
-        contentId,
-        startTime: new Date().toISOString(),
-        duration: 0,
-        isActive: true,
-      },
-    });
-  },
-
-  pauseSession: () => {
-    set((state) => ({
-      currentSession: state.currentSession
-        ? { ...state.currentSession, isActive: false }
-        : null,
-    }));
-  },
-
-  resumeSession: () => {
-    set((state) => ({
-      currentSession: state.currentSession
-        ? { ...state.currentSession, isActive: true }
-        : null,
-    }));
-  },
-
-  endSession: () => {
-    const { currentSession, streak } = get();
-    if (currentSession) {
-      const today = new Date().getDay();
-      const newWeeklyProgress = [...streak.weeklyProgress];
-      newWeeklyProgress[today] += Math.floor(currentSession.duration / 60);
-      
+  login: async (email, password) => {
+    try {
+      const response = await axios.post(`${API_URL}/api/auth/login`, { email, password });
       set({
-        currentSession: null,
-        streak: {
-          ...streak,
-          currentStreak: streak.currentStreak + 1,
-          longestStreak: Math.max(streak.longestStreak, streak.currentStreak + 1),
-          lastStudyDate: new Date().toISOString(),
-          weeklyProgress: newWeeklyProgress,
-        },
+        user: response.data.user,
+        isAuthenticated: true,
       });
+      return true;
+    } catch (error) {
+      console.error("Login failed:", error);
+      return false;
     }
   },
+
+  signup: async (email, password, name) => {
+    try {
+      // Mapping 'name' to 'fullName' as expected by your backend controller
+      const response = await axios.post(`${API_URL}/api/auth/register`, { 
+        email, 
+        password, 
+        fullName: name 
+      });
+      set({
+        user: response.data.user,
+        isAuthenticated: true,
+      });
+      return true;
+    } catch (error) {
+      console.error("Signup failed:", error);
+      return false;
+    }
+  },
+
+  updateProfile: async (updates) => {
+    try {
+      const { user } = get();
+      if (!user) return;
+
+      // If updating preferences from the Quest, call the specific save endpoint
+      if (updates.preferences) {
+        await axios.post(`${API_URL}/api/preferences/save`, updates.preferences);
+      }
+
+      set({ user: { ...user, ...updates } });
+    } catch (error) {
+      console.error("Profile update failed:", error);
+    }
+  },
+
+  logout: async () => {
+    try {
+      await axios.post(`${API_URL}/api/auth/logout`);
+      set({ user: null, isAuthenticated: false, contents: [] });
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  }
 }));

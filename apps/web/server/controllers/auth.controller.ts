@@ -10,17 +10,22 @@ export const register = async (req: Request, res: Response) => {
     console.log(`[Auth] Registering user: ${email}`);
 
     try {
-        if(!email || !fullName || !password){
+        if (!email || !fullName || !password) {
             return res.status(400).json({ message: "Missing required fields" });
         }
 
-        if(password.length < 6){
+        if (password.length < 6) {
             return res.status(400).json({ message: "Password must be at least 6 characters long" });
         }
 
-        const existingUser = await UserContainer.item(email).read();
+        // Use a query to check for existing user since the item ID is a UUID, not the email
+        const query = {
+            query: "SELECT * FROM c WHERE c.email = @email",
+            parameters: [{ name: "@email", value: email }],
+        };
+        const { resources } = await UserContainer.items.query<User>(query).fetchAll();
 
-        if(existingUser.resource){
+        if (resources.length > 0) {
             return res.status(400).json({ message: "User already exists" });
         }
 
@@ -42,19 +47,23 @@ export const register = async (req: Request, res: Response) => {
         await UserContainer.items.create(newUser);
 
         generateToken(newUser.id, res);
-        res.status(201).json({ message: "User registered successfully" });
+
+        // Remove passwordHash before sending the user object to the frontend
+        const { passwordHash: _, ...userResponse } = newUser;
+        res.status(201).json({ user: userResponse });
+
     } catch (error) {
         console.error(`[Auth] Error registering user: ${error}`);
         res.status(500).json({ message: "Internal server error" });
     }
 }
 
-export const login = async (req: Request, res:Response) => {
-    const {email, password} = req.body;
+export const login = async (req: Request, res: Response) => {
+    const { email, password } = req.body;
     console.log(`[Auth] Logging in user: ${email}`);
 
-    try{
-        if(!email || !password){
+    try {
+        if (!email || !password) {
             return res.status(400).json({ message: "Missing required fields" });
         }
 
@@ -65,7 +74,7 @@ export const login = async (req: Request, res:Response) => {
 
         const { resources } = await UserContainer.items.query<User>(query).fetchAll();
 
-        if (resources.length == 0){
+        if (resources.length === 0) {
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
@@ -77,8 +86,12 @@ export const login = async (req: Request, res:Response) => {
         }
 
         generateToken(user.id, res);
-        res.status(200).json({ message: "Login successful" });
-    } catch(error){
+
+        // Sanitize response and return user data for frontend state synchronization
+        const { passwordHash: _, ...userResponse } = user;
+        res.status(200).json({ user: userResponse });
+
+    } catch (error) {
         console.error(`[Auth] Error logging in user: ${error}`);
         res.status(500).json({ message: "Internal server error" });
     }
@@ -86,9 +99,10 @@ export const login = async (req: Request, res:Response) => {
 
 export const logout = async (req: Request, res: Response) => {
     try {
+        // Clear the JWT cookie to end the session
         res.clearCookie("jwt");
         res.status(200).json({ message: "Logout successful" });
-    } catch(error){
+    } catch (error) {
         console.error(`[Auth] Error logging out user: ${error}`);
         res.status(500).json({ message: "Internal server error" });
     }
