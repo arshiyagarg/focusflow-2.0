@@ -6,10 +6,12 @@ import { StreakDisplay } from "@/components/dashboard/StreakDisplay";
 import { ContentUpload } from "@/components/dashboard/ContentUpload";
 import { ContentCard } from "@/components/dashboard/ContentCard";
 import { ProfileCard } from "@/components/dashboard/ProfileCard";
-import { useAppStore } from "@/store/useAppStore";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useStudyStore } from "@/store/useStudyTemp";
 
 const Dashboard = () => {
-  const { isAuthenticated, user, contents } = useAppStore();
+  const { isAuthenticated, user } = useAuthStore();
+  const { contents } = useStudyStore();
   const navigate = useNavigate();
   
   useEffect(() => {

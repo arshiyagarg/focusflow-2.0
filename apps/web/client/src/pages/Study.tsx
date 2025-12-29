@@ -3,11 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { Play, Pause, Square, ChevronLeft, Clock, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useAppStore } from "@/store/useAppStore";
+import { useStudyStore } from "@/store/useStudyTemp";
 import { useToast } from "@/hooks/use-toast";
 
 const Study = () => {
-  const { currentSession, contents, pauseSession, resumeSession, endSession } = useAppStore();
+  const { currentSession, contents, pauseSession, resumeSession, endSession } = useStudyStore();
   const navigate = useNavigate();
   const { toast } = useToast();
   

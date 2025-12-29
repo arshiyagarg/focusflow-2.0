@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, ArrowLeft, Brain, Eye, Palette, Zap, Heart, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useAppStore, UserPreferences } from "@/store/useAppStore";
+import { usePreferencesStore } from "@/store/usePreferencesStore";
+import { useAuthStore, UserPreferences } from "@/store/useAuthStore";
 import { useToast } from "@/hooks/use-toast";
 
 interface QuestionOption {
@@ -182,7 +183,7 @@ const ProfileSetup = () => {
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   
-  const { updateProfile } = useAppStore();
+  const { savePreferences } = usePreferencesStore();
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -247,7 +248,7 @@ const ProfileSetup = () => {
         scrollSpeed: answers.scrollSpeed as string || '',
       };
       
-      updateProfile({ preferences });
+      savePreferences(preferences);
       toast({ 
         title: "Assessment complete!", 
         description: "Your learning profile has been personalized." 

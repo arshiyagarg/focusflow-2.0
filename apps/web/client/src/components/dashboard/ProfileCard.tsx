@@ -1,10 +1,10 @@
 import { User, Settings, LogOut, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAppStore } from "@/store/useAppStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import { useNavigate } from "react-router-dom";
 
 export const ProfileCard = () => {
-  const { user, logout } = useAppStore();
+  const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   
   if (!user) return null;
@@ -26,10 +26,10 @@ export const ProfileCard = () => {
         </div>
       </div>
       
-      {user.studyGoal && (
+      {user.preferences?.focusSessionLength && (
         <div className="bg-sage-50 rounded-lg p-4">
           <p className="text-sm text-sage-600 mb-1">Study Goal</p>
-          <p className="font-medium text-sage-800">{user.studyGoal}</p>
+          <p className="font-medium text-sage-800">{user.preferences.focusSessionLength}</p>
         </div>
       )}
       

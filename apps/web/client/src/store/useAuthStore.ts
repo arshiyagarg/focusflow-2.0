@@ -1,13 +1,10 @@
 import { create } from 'zustand';
 import axios from 'axios';
 
-// Backend URL from your Docker/server config
 const API_URL = "http://localhost:3001";
 
-// Ensure cookies (JWT) are sent with every request
 axios.defaults.withCredentials = true;
 
-// Interfaces remain the same as your current model
 export interface UserPreferences {
   focusSessionLength: string;
   breakLength: string;
@@ -30,20 +27,17 @@ export interface User {
   preferences?: UserPreferences;
 }
 
-interface AppState {
+interface AuthStore {
   user: User | null;
   isAuthenticated: boolean;
-  contents: any[];
   login: (email: string, password: string) => Promise<boolean>;
   signup: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => void;
-  updateProfile: (updates: Partial<User>) => Promise<void>;
 }
 
-export const useAppStore = create<AppState>((set, get) => ({
+export const useAuthStore = create<AuthStore>((set, get) => ({
   user: null,
   isAuthenticated: false,
-  contents: [],
 
   login: async (email, password) => {
     try {
@@ -78,26 +72,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  updateProfile: async (updates) => {
-    try {
-      const { user } = get();
-      if (!user) return;
-
-      // If updating preferences from the Quest, call the specific save endpoint
-      if (updates.preferences) {
-        await axios.post(`${API_URL}/api/preferences/save`, updates.preferences);
-      }
-
-      set({ user: { ...user, ...updates } });
-    } catch (error) {
-      console.error("Profile update failed:", error);
-    }
-  },
-
   logout: async () => {
     try {
       await axios.post(`${API_URL}/api/auth/logout`);
-      set({ user: null, isAuthenticated: false, contents: [] });
+      set({ user: null, isAuthenticated: false });
     } catch (error) {
       console.error("Logout failed:", error);
     }

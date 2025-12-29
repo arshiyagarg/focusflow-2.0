@@ -58,7 +58,6 @@ export const saveUserPreferences = async (req: Request, res: Response) => {
     
     console.log("Gemini reasoning saved successfully to Cosmos DB");
     res.status(200).json({ success: true, evaluation });
-
   } catch (error: any) {
     console.error("--- GEMINI AI ERROR ---");
     console.error(error.message);

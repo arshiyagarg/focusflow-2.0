@@ -1,8 +1,8 @@
 import { Flame, TrendingUp } from "lucide-react";
-import { useAppStore } from "@/store/useAppStore";
+import { useStudyStore } from "@/store/useStudyTemp";
 
 export const StreakDisplay = () => {
-  const { streak } = useAppStore();
+  const { streak } = useStudyStore();
   
   const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   const maxProgress = Math.max(...streak.weeklyProgress, 60);

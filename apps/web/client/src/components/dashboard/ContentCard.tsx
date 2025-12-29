@@ -1,15 +1,15 @@
 import { FileText, Video, Play, Pause, Download, Trash2, Loader2, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useAppStore, StudyContent } from "@/store/useAppStore";
+import { useStudyStore } from "@/store/useStudyTemp";
 import { useNavigate }  from "react-router-dom";
 
 interface ContentCardProps {
-  content: StudyContent;
+  content: any;
 }
 
 export const ContentCard = ({ content }: ContentCardProps) => {
-  const { removeContent, currentSession, startSession, pauseSession, resumeSession } = useAppStore();
+  const { removeContent, currentSession, startSession, pauseSession, resumeSession } = useStudyStore();
   const navigate = useNavigate();
   
   const isActive = currentSession?.contentId === content.id;

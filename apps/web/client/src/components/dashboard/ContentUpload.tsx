@@ -2,7 +2,7 @@ import { FileText, Video, Upload, Link, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useAppStore } from "@/store/useAppStore";
+import { useStudyStore } from "@/store/useStudyTemp";
 import { useToast } from "@/hooks/use-toast";
 
 interface ContentUploadProps {
@@ -14,7 +14,7 @@ export const ContentUpload = ({ onUploadComplete }: ContentUploadProps) => {
   const [inputMethod, setInputMethod] = useState<'file' | 'link'>('file');
   const [linkValue, setLinkValue] = useState('');
   const [isUploading, setIsUploading] = useState(false);
-  const { addContent } = useAppStore();
+  const { addContent } = useStudyStore();
   const { toast } = useToast();
   
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
