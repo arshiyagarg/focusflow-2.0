@@ -1,24 +1,23 @@
 import { Request, Response } from "express";
 import { Content_outputsContainer } from "../lib/db.config";
-import { processTextInBackground } from "../utils/textsummarizer";
+import { processLinkInBackground } from "../utils/linkSummarizer";
 
-export const triggerprocessingText = async (
+export const triggerprocessingLink = async (
   req: Request,
   res: Response
 ) => {
-  console.log(`[Text Controller] ${new Date().toISOString()} - Triggering processing for contentId: ${req.params.contentId}`);
+  console.log(`[Link Controller] ${new Date().toISOString()} - Triggering processing for contentId: ${req.params.contentId}`);
 
   try {
     const { contentId } = req.params;
     const userId = req.user.id;
-    console.log(`[Text Controller] userId from req.user: ${userId}, contentId: ${contentId}`);
 
     // 1️⃣ Fetch content_outputs
     const { resource } =
       await Content_outputsContainer.item(contentId, userId).read();
 
     if (!resource) {
-      console.warn(`[Text Controller] Content not found for contentId: ${contentId}`);
+      console.warn(`[Link Controller] Content not found for contentId: ${contentId}`);
       return res.status(404).json({
         message: "Content output not found",
       });
@@ -26,14 +25,14 @@ export const triggerprocessingText = async (
 
     // 2️⃣ Prevent duplicate processing
     if (resource.status === "PROCESSING") {
-      console.log(`[Text Controller] contentId: ${contentId} is already being processed.`);
+      console.log(`[Link Controller] contentId: ${contentId} is already being processed.`);
       return res.status(400).json({
         message: "Processing already in progress",
       });
     }
 
     if (resource.status === "READY") {
-      console.log(`[Text Controller] contentId: ${contentId} is already processed.`);
+      console.log(`[Link Controller] contentId: ${contentId} is already processed.`);
       return res.status(200).json({
         message: "Content already processed",
         contentId,
@@ -46,15 +45,14 @@ export const triggerprocessingText = async (
       .patch([
         { op: "set", path: "/status", value: "PROCESSING" },
       ]);
-    console.log(`[Text Controller] Marked status as PROCESSING for contentId: ${contentId}`);
+    console.log(`[Link Controller] Marked status as PROCESSING for contentId: ${contentId}`);
 
     // 4️⃣ Fire background job (DO NOT await)
-    processTextInBackground({
+    processLinkInBackground({
       contentId,
       userId,
-      initialResource: resource, // Pass the already fetched resource
     });
-    console.log(`[Text Controller] Dispatched background job for contentId: ${contentId}`);
+    console.log(`[Link Controller] Dispatched background job for contentId: ${contentId}`);
 
     // 5️⃣ Respond immediately
     return res.status(202).json({

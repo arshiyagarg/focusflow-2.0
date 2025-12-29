@@ -7,6 +7,8 @@ const endpoint = process.env.COSMOSDB_ENDPOINT;
 const databaseName = process.env.COSMOSDB_NAME;
 const cosmosKey = process.env.COSMOSDB_CONNECTION_STRING_RW;
 
+console.log(`[DB Config] Initialization - Endpoint: ${endpoint ? "LOADED" : "MISSING"}, DB Name: ${databaseName ? "LOADED" : "MISSING"}, Key: ${cosmosKey ? "LOADED" : "MISSING"}`);
+
 if (!endpoint || !databaseName || !cosmosKey) {
   console.error("Missing Cosmos DB configuration!");
   console.error("Please set COSMOSDB_ENDPOINT, COSMOSDB_NAME, and COSMOSDB_CONNECTION_STRING_RW in your .env file");

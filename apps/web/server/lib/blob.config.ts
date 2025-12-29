@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const connectionString = process.env.BLOBDB_CONNECTION_STRING;
+console.log(`[Blob Config] Initialization - Connection String: ${connectionString ? "LOADED" : "MISSING"}`);
 
 if (!connectionString) {
   console.error("Missing Blob Storage connection string!");
