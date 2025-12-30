@@ -1,11 +1,15 @@
+// apps/extensions/frontend/content/meet.js
+
 let dashboard = null;
 let bionicActive = false;
 let transcriptText = "";
+let currentNuggetContent = "";
+let meetChatHistory = [];
 
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === 'RECORDING_STATUS') {
-        if (msg.status === 'active') { createDashboard(); }
-        else { if (dashboard) dashboard.remove(); dashboard = null; }
+        if (msg.status === 'active') createDashboard();
+        else if (dashboard) { dashboard.remove(); dashboard = null; }
     }
 });
 
@@ -13,83 +17,112 @@ function createDashboard() {
     if (dashboard) return;
     dashboard = document.createElement('div');
     dashboard.className = "ff-dashboard"; 
-    
-    dashboard.style.cssText = `
-        position: fixed; bottom: 80px; right: 20px;
-        width: 450px; height: 550px; background: white;
-        border: 2px solid #10a37f; border-radius: 12px;
-        z-index: 2147483647; display: flex; flex-direction: column;
-        resize: both; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    `;
+    dashboard.style.cssText = `position: fixed; bottom: 80px; right: 20px; width: 450px; height: 550px;`;
 
     dashboard.innerHTML = `
-        <div class="ff-header">
-            <span>FocusFlow Meet Assistant</span>
-            <label style="font-size:12px;"><input type="checkbox" id="meet-bionic"> Bionic</label>
+        <div class="ff-header" id="ff-drag-handle">
+            <strong>FocusFlow Meet</strong>
+            <label style="font-size:12px; cursor:pointer;"><input type="checkbox" id="meet-bionic"> Bionic</label>
         </div>
         <div class="ff-tabs">
             <button id="t-a" class="active">Live Feed</button>
             <button id="t-b">Smart Nuggets</button>
             <button id="t-c">Assistant</button>
         </div>
-        <div id="ff-meet-body">
-            <div id="v-a" class="view">Waiting for audio stream...</div>
-            <div id="v-b" class="view" style="display:none;">
-                <select id="nugget-format" style="margin-bottom:10px; width: 100%;">
+        <div id="ff-meet-body" style="height: calc(100% - 100px); overflow: hidden;">
+            <div id="v-a" class="view" style="height: 100%; overflow-y: auto;">
+                <div id="live-transcript-area">Waiting for audio stream...</div>
+            </div>
+            <div id="v-b" class="view" style="display:none; height: 100%; overflow-y: auto;">
+                <select id="nugget-format" style="width:100%; padding:8px; margin-bottom:10px;">
                     <option value="bullets">Bullets</option>
                     <option value="para">Paragraph</option>
-                    <option value="flowchart">Logic Steps</option>
                 </select>
-                <div id="nugget-content">Analyzing...</div>
+                <div id="nugget-content">Analyzing lecture context...</div>
             </div>
-            <div id="v-c" class="view" style="display:none;">
-                <div id="meet-chat-history" style="height:300px; overflow-y:auto; border-bottom:1px solid #eee; margin-bottom:10px;"></div>
-                <input type="text" id="meet-chat-input" placeholder="Ask about the lecture..." style="width:100%; box-sizing:border-box; padding:8px;">
+            <div id="v-c" class="view" style="display:none; flex-direction:column; height:100%;">
+                <div id="meet-chat-history"></div>
+                <div style="display:flex; padding:10px; border-top:1px solid #eee; gap:5px;">
+                    <input type="text" id="meet-chat-input" placeholder="Ask about lecture..." style="flex:1; padding:8px; border-radius:4px; border:1px solid #ddd;">
+                    <button id="meet-send" style="background:#10a37f; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;">➤</button>
+                </div>
             </div>
         </div>
     `;
     document.body.appendChild(dashboard);
+    makeDraggable(dashboard, document.getElementById('ff-drag-handle'));
     setupDashboardActions();
 }
 
 function setupDashboardActions() {
-    document.getElementById('meet-bionic').onchange = (e) => {
-        bionicActive = e.target.checked;
-        updateFeedUI();
-    };
+    const bionicToggle = document.getElementById('meet-bionic');
+    if (bionicToggle) {
+        bionicToggle.onchange = (e) => {
+            bionicActive = e.target.checked;
+            updateUI(); // Immediate re-render
+        };
+    }
 
     const tabs = ['t-a', 't-b', 't-c'];
     tabs.forEach(id => {
-        document.getElementById(id).onclick = () => {
-            tabs.forEach(t => {
-                document.getElementById(t).classList.remove('active');
-                document.getElementById('v-' + t.split('-')[1]).style.display = 'none';
-            });
-            document.getElementById(id).classList.add('active');
-            document.getElementById('v-' + id.split('-')[1]).style.display = 'block';
-        };
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.onclick = () => {
+                tabs.forEach(t => {
+                    document.getElementById(t).classList.remove('active');
+                    const view = document.getElementById('v-' + t.split('-')[1]);
+                    if (view) view.style.display = 'none';
+                });
+                btn.classList.add('active');
+                const target = document.getElementById('v-' + id.split('-')[1]);
+                if (target) target.style.display = id === 't-c' ? 'flex' : 'block';
+            };
+        }
     });
 
-    setInterval(syncMeetData, 30000);
+    const sendBtn = document.getElementById('meet-send');
+    const input = document.getElementById('meet-chat-input');
+    if (sendBtn) {
+        sendBtn.onclick = async () => {
+            const text = input.value.trim();
+            if (!text) return;
+            addMeetMsg(text, 'user');
+            input.value = '';
+            try {
+                const res = await fetch('http://localhost:3000/media/meet-chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text, history: meetChatHistory })
+                });
+                const data = await res.json();
+                addMeetMsg(data.reply, 'bot');
+                meetChatHistory.push({ role: "user", content: text }, { role: "assistant", content: data.reply });
+            } catch (e) { addMeetMsg("Assistant offline. Check server connectivity.", 'bot'); }
+        };
+    }
+
+    // Safety sync loop to pull live data
+    setInterval(async () => {
+        if (!dashboard) return; // FIX: Prevent "innerHTML of null" error if dashboard is closed
+        try {
+            const formatEl = document.getElementById('nugget-format');
+            const format = formatEl ? formatEl.value : 'bullets';
+            const res = await fetch(`http://localhost:3000/media/meeting-summary?format=${format}`);
+            const data = await res.json();
+            
+            transcriptText = data.fullTranscript || transcriptText;
+            currentNuggetContent = data.reply || currentNuggetContent;
+            updateUI();
+        } catch (e) { console.warn("Polling failed: Server unreachable."); }
+    }, 10000);
 }
 
-async function syncMeetData() {
-    const format = document.getElementById('nugget-format')?.value || 'bullets';
-    try {
-        const res = await fetch(`http://localhost:3000/media/meeting-summary?format=${format}`);
-        const data = await res.json();
-        if (data.fullTranscript) transcriptText = data.fullTranscript;
-        if (data.reply) {
-            const nuggetBox = document.getElementById('nugget-content');
-            nuggetBox.innerHTML = bionicActive ? applyBionic(data.reply) : data.reply;
-        }
-        updateFeedUI();
-    } catch (e) { console.error("Meet Sync Failed", e); }
-}
-
-function updateFeedUI() {
-    const feed = document.getElementById('v-a');
+function updateUI() {
+    const feed = document.getElementById('live-transcript-area');
+    const nugget = document.getElementById('nugget-content');
+    // Safety checks for both elements
     if (feed) feed.innerHTML = bionicActive ? applyBionic(transcriptText) : transcriptText;
+    if (nugget) nugget.innerHTML = bionicActive ? applyBionic(currentNuggetContent) : currentNuggetContent;
 }
 
 function applyBionic(text) {
@@ -100,42 +133,28 @@ function applyBionic(text) {
         return `<b>${w.slice(0, m)}</b>${w.slice(m)}`;
     }).join('').replace(/\n/g, '<br>');
 }
-// badge logic
 
-// function showBadge() {
-//     if (badge) return;
-    
-//     badge = document.createElement('div');
-//     badge.innerText = "🔴 FocusFlow Listening";
-//     badge.style.cssText = `
-//         position: fixed; bottom: 80px; left: 20px;
-//         background: #dc2626; color: white; padding: 12px 24px;
-//         border-radius: 50px; font-family: sans-serif; font-weight: bold;
-//         z-index: 10000; box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
-//         display: flex; align-items: center; gap: 10px;
-//         animation: pulse 2s infinite; cursor: pointer;
-//     `;
-    
-//     badge.onclick = () => {
-//         chrome.runtime.sendMessage({ type: 'STOP_RECORDING' });
-//         hideBadge();
-//     };
+function addMeetMsg(text, sender) {
+    const hist = document.getElementById('meet-chat-history');
+    if (!hist) return;
+    const msg = document.createElement('div');
+    msg.className = `ff-msg ${sender}`;
+    msg.innerHTML = bionicActive ? applyBionic(text) : text;
+    hist.appendChild(msg);
+    hist.scrollTop = hist.scrollHeight;
+}
 
-//     document.body.appendChild(badge);
-// }
-
-// function hideBadge() {
-//     if (badge) {
-//         badge.remove();
-//         badge = null;
-//     }
-// }
-
-// const style = document.createElement('style');
-// style.innerHTML = `
-// @keyframes pulse {
-//     0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
-//     70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
-//     100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
-// }`;
-// document.head.appendChild(style);
+function makeDraggable(el, handle) {
+    let p1 = 0, p2 = 0, p3 = 0, p4 = 0;
+    handle.onmousedown = (e) => {
+        p3 = e.clientX; p4 = e.clientY;
+        document.onmouseup = () => { document.onmouseup = null; document.onmousemove = null; };
+        document.onmousemove = (e) => {
+            p1 = p3 - e.clientX; p2 = p4 - e.clientY;
+            p3 = e.clientX; p4 = e.clientY;
+            el.style.top = (el.offsetTop - p2) + "px";
+            el.style.left = (el.offsetLeft - p1) + "px";
+            el.style.bottom = "auto"; el.style.right = "auto";
+        };
+    };
+}
