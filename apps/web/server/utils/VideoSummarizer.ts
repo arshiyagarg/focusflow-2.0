@@ -28,8 +28,8 @@ async function uploadToGemini(filePath: string, mimeType: string) {
     displayName: path.basename(filePath),
   });
 
-  const fileUri = uploadResult.file.uri;
-  console.log(`[Gemini Upload] Uploaded as ${fileUri}`);
+  // const fileUri = uploadResult.file.uri;
+  // console.log(`[Gemini Upload] Uploaded as ${fileUri}`);
 
   // Wait for file to be active (processing takes a few seconds)
   let file = await fileManager.getFile(uploadResult.file.name);
@@ -56,26 +56,23 @@ export const processVideoInBackground = async ({ contentId, userId, inputType, s
 
   try {
     let summary = "";
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+ const normalizedType = inputType.toUpperCase();
 
-    // ---------------------------------------------------------
-    // SCENARIO 1: LOCAL VIDEO FILE (The Main Feature)
-    // ---------------------------------------------------------
-    if (inputType === "VIDEO_LOCAL") {
-      // 1. Download from Azure to Temp
+    if (normalizedType === "VIDEO" || normalizedType === "VIDEO_LOCAL") {
+      // 1️⃣ Download video from Azure Blob
       const tempDir = os.tmpdir();
-      // Ensure we treat it as mp4 for compatibility, or extract real extension
-      const ext = path.extname(storageRef) || ".mp4"; 
-      tempFilePath = path.join(tempDir, `vid_${contentId}${ext}`);
+      const ext = path.extname(storageRef) || ".mp4";
+      tempFilePath = path.join(tempDir, `video_${contentId}${ext}`);
 
-      console.log(`[Video Worker] Downloading from Azure...`);
+      console.log("[Video Worker] Downloading from Blob...");
       await downloadBlobToFilePath(storageRef, tempFilePath);
 
-      // 2. Upload to Gemini (It "watches" the video here)
+      // 2️⃣ Upload to Gemini
       googleFile = await uploadToGemini(tempFilePath, "video/mp4");
 
-      // 3. Prompt with Video + Instructions
-      console.log("[Gemini] Analyzing Video (Visuals + Audio)...");
+      // 3️⃣ Generate summary
+      console.log("[Gemini] Generating summary...");
       const result = await model.generateContent([
         {
           fileData: {
@@ -83,71 +80,183 @@ export const processVideoInBackground = async ({ contentId, userId, inputType, s
             fileUri: googleFile.uri,
           },
         },
-        { text: `
-            You are an expert study assistant. Watch this video and generate a "Bionic Reading" summary.
-            
-            Guidelines:
-            1. Analyze both the AUDIO (what is said) and the VISUALS (slides, code, diagrams on screen).
-            2. If code or diagrams are shown, describe them in the summary.
-            3. Use Markdown.
-            4. Bold the first few letters of key words (Bionic Reading style).
-            5. Structure with clear headers.
-        ` },
+        {
+          text: `
+You are an expert ADHD-friendly study assistant.
+
+Analyze BOTH:
+• Audio (spoken explanation)
+• Visuals (slides, diagrams, code, text on screen)
+
+Produce a **BIONIC READING SUMMARY** with:
+1. Clear Markdown headers
+2. Bold first letters of important words
+3. Bullet points
+4. Explain any diagrams or code shown
+5. Concise but complete
+
+Output ONLY markdown text.
+`,
+        },
       ]);
 
-      summary = result.response.text();
-    } 
-    
-    // ---------------------------------------------------------
-    // SCENARIO 2: TEXT INPUT (Fallback)
-    // ---------------------------------------------------------
-    else if (inputType === "VIDEO_TEXT") {
-       throw new Error("Text input should route to Text Summarizer, not Video.");
-    }
-    else if (inputType === "VIDEO_LINK") {
-      throw new Error("Direct Link processing not yet implemented. Please upload the file.");
+      // 4️⃣ SAFE GEMINI RESPONSE EXTRACTION (CRITICAL FIX)
+      const response = result.response;
+      let extractedText = "";
+
+      for (const candidate of response.candidates ?? []) {
+        for (const part of candidate.content.parts ?? []) {
+          if (part.text) {
+            extractedText += part.text + "\n";
+          }
+        }
+      }
+
+      summary = extractedText.trim();
+    } else {
+      throw new Error(`Unsupported inputType: ${inputType}`);
     }
 
-    if (!summary) throw new Error("No summary generated.");
+    if (!summary) {
+      throw new Error("No summary generated from Gemini");
+    }
 
-    // ---------------------------------------------------------
-    // STEP 4: SAVE RESULT
-    // ---------------------------------------------------------
+    // --------------------
+    // SAVE OUTPUT
+    // --------------------
     const outputBlobName = `processed/${userId}/${contentId}_summary.json`;
 
-    await uploadToBlob(outputBlobName, JSON.stringify({
-      summary: summary,
-      aiModel: "Gemini 1.5 Flash (Multimodal)",
-      generatedAt: new Date().toISOString()
-    }));
+    await uploadToBlob(
+      outputBlobName,
+      JSON.stringify(
+        {
+          summary,
+          aiModel: "Gemini 1.5 Flash (Video Multimodal)",
+          generatedAt: new Date().toISOString(),
+        },
+        null,
+        2
+      )
+    );
 
-    // Update DB
     await Content_outputsContainer.item(contentId, userId).patch([
       { op: "set", path: "/status", value: "READY" },
       { op: "set", path: "/processedBlobName", value: outputBlobName },
-      { op: "set", path: "/outputFormat", value: "bionic" }
+      { op: "set", path: "/outputFormat", value: "bionic" },
     ]);
 
-    console.log(`[Video Worker] ✅ Success!`);
-
+    console.log(`[Video Worker] ✅ Completed | ID: ${contentId}`);
   } catch (error: any) {
-    console.error(`[Video Worker] ❌ Error:`, error);
-    
+    console.error("[Video Worker] ❌ Failed:", error.message);
+
     await Content_outputsContainer.item(contentId, userId).patch([
       { op: "set", path: "/status", value: "FAILED" },
-      { op: "set", path: "/errorMessage", value: error.message }
+      { op: "set", path: "/errorMessage", value: error.message },
     ]);
   } finally {
-    // CLEANUP
+    // 🧹 Cleanup
     if (tempFilePath && fs.existsSync(tempFilePath)) {
       fs.unlinkSync(tempFilePath);
     }
+
     if (googleFile) {
-        try {
-            await fileManager.deleteFile(googleFile.name);
-        } catch (e) {
-            console.error("Failed to delete Google file:", e);
-        }
+      try {
+        await fileManager.deleteFile(googleFile.name);
+      } catch {}
     }
   }
+
 };
+    // ---------------------------------------------------------
+    // SCENARIO 1: LOCAL VIDEO FILE (The Main Feature)
+    // ---------------------------------------------------------
+  //   if (inputType === "VIDEO_LOCAL") {
+  //     // 1. Download from Azure to Temp
+  //     const tempDir = os.tmpdir();
+  //     // Ensure we treat it as mp4 for compatibility, or extract real extension
+  //     const ext = path.extname(storageRef) || ".mp4"; 
+  //     tempFilePath = path.join(tempDir, `vid_${contentId}${ext}`);
+
+  //     console.log(`[Video Worker] Downloading from Azure...`);
+  //     await downloadBlobToFilePath(storageRef, tempFilePath);
+
+  //     // 2. Upload to Gemini (It "watches" the video here)
+  //     googleFile = await uploadToGemini(tempFilePath, "video/mp4");
+
+  //     // 3. Prompt with Video + Instructions
+  //     console.log("[Gemini] Analyzing Video (Visuals + Audio)...");
+  //     const result = await model.generateContent([
+  //       {
+  //         fileData: {
+  //           mimeType: googleFile.mimeType,
+  //           fileUri: googleFile.uri,
+  //         },
+  //       },
+  //       { text: `
+  //           You are an expert study assistant. Watch this video and generate a "Bionic Reading" summary.
+            
+  //           Guidelines:
+  //           1. Analyze both the AUDIO (what is said) and the VISUALS (slides, code, diagrams on screen).
+  //           2. If code or diagrams are shown, describe them in the summary.
+  //           3. Use Markdown.
+  //           4. Bold the first few letters of key words (Bionic Reading style).
+  //           5. Structure with clear headers.
+  //       ` },
+  //     ]);
+
+  //     summary = result.response.text();
+  //   } 
+    
+  //   // ---------------------------------------------------------
+  //   // SCENARIO 2: TEXT INPUT (Fallback)
+  //   // ---------------------------------------------------------
+  //   else if (inputType === "VIDEO_TEXT") {
+  //      throw new Error("Text input should route to Text Summarizer, not Video.");
+  //   }
+  //   else if (inputType === "VIDEO_LINK") {
+  //     throw new Error("Direct Link processing not yet implemented. Please upload the file.");
+  //   }
+
+  //   if (!summary) throw new Error("No summary generated.");
+
+  //   // ---------------------------------------------------------
+  //   // STEP 4: SAVE RESULT
+  //   // ---------------------------------------------------------
+  //   const outputBlobName = `processed/${userId}/${contentId}_summary.json`;
+
+  //   await uploadToBlob(outputBlobName, JSON.stringify({
+  //     summary: summary,
+  //     aiModel: "Gemini 1.5 Flash (Multimodal)",
+  //     generatedAt: new Date().toISOString()
+  //   }));
+
+  //   // Update DB
+  //   await Content_outputsContainer.item(contentId, userId).patch([
+  //     { op: "set", path: "/status", value: "READY" },
+  //     { op: "set", path: "/processedBlobName", value: outputBlobName },
+  //     { op: "set", path: "/outputFormat", value: "bionic" }
+  //   ]);
+
+  //   console.log(`[Video Worker] ✅ Success!`);
+
+  // } catch (error: any) {
+  //   console.error(`[Video Worker] ❌ Error:`, error);
+    
+  //   await Content_outputsContainer.item(contentId, userId).patch([
+  //     { op: "set", path: "/status", value: "FAILED" },
+  //     { op: "set", path: "/errorMessage", value: error.message }
+  //   ]);
+  // } finally {
+  //   // CLEANUP
+  //   if (tempFilePath && fs.existsSync(tempFilePath)) {
+  //     fs.unlinkSync(tempFilePath);
+  //   }
+  //   if (googleFile) {
+  //       try {
+  //           await fileManager.deleteFile(googleFile.name);
+  //       } catch (e) {
+  //           console.error("Failed to delete Google file:", e);
+  //       }
+  //   }
+  // }
+// };

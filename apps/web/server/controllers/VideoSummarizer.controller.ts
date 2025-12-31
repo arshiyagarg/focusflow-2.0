@@ -47,7 +47,7 @@ export const triggerProcessingVideo = async (req: Request, res: Response) => {
     processVideoInBackground({
       contentId,
       userId,
-      inputType: resource.inputType, // e.g., 'VIDEO_LOCAL', 'VIDEO_LINK'
+      inputType: "VIDEO_LOCAL", // e.g., 'VIDEO_LOCAL', 'VIDEO_LINK'
       storageRef: resource.rawStorageRef, // e.g., the blob URL
     });
 
