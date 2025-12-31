@@ -36,12 +36,11 @@ function startVisualSelection() {
     };
 }
 
-// apps/extensions/frontend/content/vision.js
 
 async function captureAndAnalyze(video, rect) {
     const captureCanvas = document.createElement('canvas');
     
-    // FIX: Math.abs and Math.max prevent "undefined" or 0 dimensions
+    // Math.abs and Math.max prevent "undefined" or 0 dimensions
     captureCanvas.width = Math.max(1, Math.abs(rect.w));
     captureCanvas.height = Math.max(1, Math.abs(rect.h));
     
@@ -50,7 +49,7 @@ async function captureAndAnalyze(video, rect) {
     const scaleX = video.videoWidth / videoRect.width;
     const scaleY = video.videoHeight / videoRect.height;
 
-    // FIX: Correctly identifies the top-left corner regardless of drag direction
+    // Correctly identifies the top-left corner regardless of drag direction
     const sourceX = (Math.min(rect.x, rect.x + rect.w) - videoRect.left) * scaleX;
     const sourceY = (Math.min(rect.y, rect.y + rect.h) - videoRect.top) * scaleY;
 

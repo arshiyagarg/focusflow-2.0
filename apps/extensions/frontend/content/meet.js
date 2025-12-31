@@ -6,6 +6,16 @@ let transcriptText = "";
 let currentNuggetContent = "";
 let meetChatHistory = [];
 
+
+let lastInteraction = Date.now();
+const QUIZ_INTERVAL = 10 * 60 * 1000; // 10 minutes
+
+
+// VISUAL ANALYSIS STATE VARIABLES 
+
+let lastOcrResult = ""; 
+let visualChatHistory = [];
+
 chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === 'RECORDING_STATUS') {
         if (msg.status === 'active') createDashboard();
@@ -28,7 +38,9 @@ function createDashboard() {
             <button id="t-a" class="active">Live Feed</button>
             <button id="t-b">Smart Nuggets</button>
             <button id="t-c">Assistant</button>
-            <button id="t-d">Visual</button> </div>
+            <button id="t-d">Visual</button>
+            <button id="t-e">Topics</button> </div>
+
         <div id="ff-meet-body" style="height: calc(100% - 100px); overflow: hidden;">
             <div id="v-a" class="view" style="height: 100%; overflow-y: auto;">
                 <div id="live-transcript-area">Waiting for audio stream...</div>
@@ -47,20 +59,31 @@ function createDashboard() {
                     <button id="meet-send" style="background:#10a37f; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;">➤</button>
                 </div>
             </div>
-<div id="v-d" class="view" style="display:none; flex-direction:column; height:100%;">
+            <div id="v-d" class="view" style="display:none; flex-direction:column; height:100%;">
     <div style="display:flex; gap:5px; margin-bottom:10px;">
-        <button id="trigger-ocr" style="flex:2; background:#10a37f; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">🔍 Select Area</button>
-        <button id="visual-shredder" style="flex:1; background:#0ea5e9; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">✂️ Shred</button>
-        <button id="visual-onenote" style="flex:1; background:#773b9a; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">💜 OneNote</button>
+        <button id="trigger-ocr" style="flex:2; background:#10a37f; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">Capture Area</button>
+        <button id="visual-shredder" style="flex:1; background:#0ea5e9; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">Flowchart</button>
+        <button id="visual-onenote" style="flex:1; background:#773b9a; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">Export</button>
     </div>
-    <div id="visual-output" style="max-height:120px; overflow-y:auto; background:#f0f9ff; padding:8px; border-radius:5px; font-size:13px; margin-bottom:10px;">Select area to explain...</div>
+    <div id="visual-output" style="max-height:150px; overflow-y:auto; background:#f0f9ff; padding:10px; border-radius:8px; border:1px solid #e2e8f0; font-size:14px; margin-bottom:10px;">
+        Capture a video region to analyze text and concepts.
+    </div>
     
     <div id="visual-chat-history" style="flex:1; overflow-y:auto; border-top:1px solid #ddd; padding-top:10px;"></div>
-    <div style="display:flex; padding:10px; gap:5px; border-top:1px solid #eee;">
-        <input type="text" id="visual-chat-input" placeholder="Ask about selection..." style="flex:1; padding:8px; border-radius:4px; border:1px solid #ddd;">
-        <button id="visual-chat-send" style="background:#10a37f; color:white; border:none; padding:0 15px; border-radius:4px; cursor:pointer;">➤</button>
+    <div style="display:flex; padding:10px; border-top:1px solid #eee; gap:5px;">
+        <input type="text" id="visual-chat-input" placeholder="Query this selection..." style="flex:1; padding:8px; border-radius:4px; border:1px solid #ddd;">
+        <button id="visual-chat-send" style="background:#10a37f; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;">Send</button>
     </div>
 </div>
+<div id="v-e" class="view" style="display:none; flex-direction:column; height:100%;">
+    <button id="trigger-video-shredder" style="background:#0ea5e9; color:white; border:none; padding:10px; border-radius:8px; margin-bottom:10px; cursor:pointer;">
+        Analyze Video Topics
+    </button>
+    <div id="topic-output" style="flex:1; overflow-y:auto; background:#f8fafc; padding:10px; border-radius:8px; border:1px solid #e2e8f0;">
+        Video topics will be color-coded here...
+    </div>
+</div>
+
         </div>
     `;
     document.body.appendChild(dashboard);
@@ -79,7 +102,7 @@ function setupDashboardActions() {
     }
 
     // Tab Switching (Updated to include t-d and v-d)
-    const tabs = ['t-a', 't-b', 't-c', 't-d'];
+    const tabs = ['t-a', 't-b', 't-c', 't-d', 't-e'];
     tabs.forEach(id => {
         const btn = document.getElementById(id);
         if (btn) {
@@ -149,115 +172,12 @@ function setupDashboardActions() {
         }
     };
 
-// Use securityLevel: 'loose' if you need to render HTML labels
-mermaid.initialize({ 
-    startOnLoad: false, 
-    theme: 'neutral',
-    securityLevel: 'loose' 
-});
+    setupVisualActions(); 
+    setupTopicActions();
 
-// 2. Updated Shredder logic using mermaid.run()
-document.getElementById('trigger-shredder').onclick = async () => {
-    const output = document.getElementById('visual-output');
-    output.innerHTML = "Generating flowchart...";
-    try {
-        const res = await fetch('http://localhost:3000/vision/shredder', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ transcript: transcriptText })
-        });
-        const data = await res.json();
-        
-        // Use textContent to prevent XSS or parsing issues
-        output.innerHTML = `<pre class="mermaid">${data.mermaidCode}</pre>`;
-        
-        // Use mermaid.run() instead of init()
-        await mermaid.run({
-            nodes: output.querySelectorAll('.mermaid')
-        });
-    } catch (e) { 
-        output.innerHTML = "Error: " + e.message; 
-    }
-};
-
-// Variable to store the context for the visual chat
-let lastOcrResult = "";
-let visualChatHistory = [];
-
-// 1. Mermaid v10 Fix (Use run instead of init)
-const handleShredder = async () => {
-    const output = document.getElementById('visual-output');
-    output.innerHTML = "Generating flowchart...";
-    try {
-        const res = await fetch('http://localhost:3000/media/shredder', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ transcript: transcriptText })
-        });
-        const data = await res.json();
-        output.innerHTML = `<pre class="mermaid">${data.mermaidCode}</pre>`;
-        // FIX: Re-run mermaid for the new element
-        await mermaid.run({ nodes: output.querySelectorAll('.mermaid') });
-    } catch (e) { output.innerHTML = "Error: " + e.message; }
-};
-document.getElementById('visual-shredder').onclick = handleShredder;
-document.getElementById('trigger-shredder').onclick = handleShredder;
-
-// 2. Visual Chat logic
-document.getElementById('visual-chat-send').onclick = async () => {
-    const input = document.getElementById('visual-chat-input');
-    const text = input.value.trim();
-    if (!text || !lastOcrResult) return;
-    
-    addVisualMsg(text, 'user');
-    input.value = '';
-    
-    const res = await fetch('http://localhost:3000/vision/ocr-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, ocrContext: lastOcrResult, history: visualChatHistory })
-    });
-    const data = await res.json();
-    addVisualMsg(data.reply, 'bot');
-    visualChatHistory.push({ role: "user", content: text }, { role: "assistant", content: data.reply });
-};
-
-// 3. Shared OneNote Logic
-const triggerOneNote = () => {
-    const content = document.getElementById('nugget-content').innerText || document.getElementById('visual-output').innerText;
-    exportToOneNote(content); // Existing function
-};
-document.getElementById('visual-onenote').onclick = triggerOneNote;
 }
 
-// Listen for OCR results from vision.js
-window.addEventListener("message", async (event) => {
-    if (event.data.type === 'OCR_CAPTURE_READY') {
-        const output = document.getElementById('visual-output');
-        if (!output) return;
-        
-        output.innerText = "Analyzing selection...";
-        try {
-            const res = await fetch('http://localhost:3000/vision/ocr-explain', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: event.data.image })
-            });
-            const data = await res.json();
-            output.innerHTML = bionicActive ? applyBionic(data.reply) : data.reply;
-        } catch (e) { output.innerText = "OCR analysis failed."; }
-    }
-});
-
-function addVisualMsg(text, sender) {
-    const hist = document.getElementById('visual-chat-history');
-    if (!hist) return;
-    const msg = document.createElement('div');
-    msg.className = `ff-msg ${sender}`;
-    msg.innerHTML = bionicActive ? applyBionic(text) : text;
-    hist.appendChild(msg);
-    hist.scrollTop = hist.scrollHeight;
-}
+// Text Formatting functions
 
 function applyBionic(text) {
     if (!text) return "";
@@ -333,27 +253,9 @@ function makeDraggable(el, handle) {
     };
 }
 
-
-async function exportToOneNote() {
-    const content = document.getElementById('nugget-content').innerText;
-    // Simple POST to Microsoft Graph OneNote endpoint
-    const res = await fetch('https://graph.microsoft.com/v1.0/me/onenote/pages', {
-        method: 'POST',
-        headers: { 
-            'Authorization': `Bearer ${userAccessToken}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            title: "FocusFlow: " + new Date().toLocaleDateString(),
-            content: `<html><body>${content}</body></html>`
-        })
-    });
-    if(res.ok) alert("Exported to OneNote!");
-}
-
-
-let lastInteraction = Date.now();
-const QUIZ_INTERVAL = 10 * 60 * 1000; // 10 minutes
+/* -------------------------------------------------------------------------- */
+/* QUIZ SET UP FOR AUDIO TO CHECK FOCUS AFTER 10 MINS                                  */
+/* -------------------------------------------------------------------------- */
 
 // Track user activity
 ['mousedown', 'keydown', 'scroll'].forEach(evt => {
@@ -384,4 +286,179 @@ async function triggerActiveRecallQuiz() {
     switchTab('t-c');
     addMeetMsg("Focus Check: " + data.question, 'bot');
     lastInteraction = Date.now(); // Reset timer so it doesn't spam
+}
+
+//OneNote export
+
+async function exportToOneNote(content) {
+    if (!content) return alert("No content to export.");
+    // Note: Ensure userAccessToken is defined or passed from background.js
+    const res = await fetch('https://graph.microsoft.com/v1.0/me/onenote/pages', {
+        method: 'POST',
+        headers: { 
+            'Authorization': `Bearer ${userAccessToken}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            title: "FocusFlow Note: " + new Date().toLocaleDateString(),
+            content: `<html><body>${content.replace(/\n/g, '<br>')}</body></html>`
+        })
+    });
+    if(res.ok) alert("Exported to OneNote!");
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* VISUAL ANALYSIS ACTIONS: SETUP FUNCTIONS                                   */
+/* -------------------------------------------------------------------------- */
+function setupVisualActions() {
+    // Mermaid Initialization for Visual Flowcharts
+    mermaid.initialize({ 
+        startOnLoad: false, 
+        theme: 'neutral',
+        securityLevel: 'loose' 
+    });
+
+    // Azure Video OCR Trigger
+    const ocrBtn = document.getElementById('trigger-ocr');
+    if (ocrBtn) {
+        ocrBtn.onclick = () => {
+            if (typeof startVisualSelection === "function") {
+                startVisualSelection(); 
+            } else {
+                console.error("Visual capture module not loaded.");
+            }
+        };
+    }
+
+    // Visual Shredder: Mermaid Logic
+    const shredBtn = document.getElementById('trigger-video-shredder');
+    if (shredBtn) {
+        shredBtn.onclick = async () => {
+            const output = document.getElementById('topic-output');
+            output.innerHTML = "Performing topic analysis...";
+            const res = await fetch(`http://localhost:3000/vision/video-topics?transcript=${encodeURIComponent(transcriptText)}`);
+            const data = await res.json();
+            
+            // Apply color coding for ADHD focus
+            output.innerHTML = data.topics
+                .replace(/\[TOPIC: blue\]/g, '<div class="topic-tag blue">')
+                .replace(/\[TOPIC: green\]/g, '<div class="topic-tag green">')
+                .replace(/\[TOPIC: orange\]/g, '<div class="topic-tag orange">')
+                .replace(/\[TOPIC: purple\]/g, '<div class="topic-tag purple">')
+                .replace(/\n/g, '</div>');
+        };
+    }
+
+    // Visual Chat: Groq Analysis of Captured Region
+    const vChatSend = document.getElementById('visual-chat-send');
+    if (vChatSend) {
+        vChatSend.onclick = async () => {
+            const input = document.getElementById('visual-chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+            if (!lastOcrResult) return alert("Capture an area first to provide context.");
+
+            addVisualMsg(text, 'user');
+            input.value = '';
+
+            const res = await fetch('http://localhost:3000/vision/ocr-chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text, ocrContext: lastOcrResult, history: visualChatHistory })
+            });
+            const data = await res.json();
+            addVisualMsg(data.reply, 'bot');
+            visualChatHistory.push({ role: "user", content: text }, { role: "assistant", content: data.reply });
+        };
+    }
+
+    // Visual Microsoft OneNote Export
+    document.getElementById('visual-onenote').onclick = () => {
+        const content = document.getElementById('visual-output').innerText;
+        exportToOneNote(content);
+    };
+
+    document.getElementById('visual-shredder').onclick = async () => {
+        const output = document.getElementById('visual-output');
+        output.innerHTML = "Generating Mermaid flowchart...";
+        const res = await fetch('http://localhost:3000/media/shredder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ transcript: transcriptText })
+        });
+        const data = await res.json();
+        output.innerHTML = `<pre class="mermaid">${data.mermaidCode}</pre>`;
+        if (window.mermaid) await mermaid.run({ nodes: output.querySelectorAll('.mermaid') });
+    };
+}
+
+/* -------------------------------------------------------------------------- */
+/* VISUAL ANALYSIS LISTENERS: BACKEND RESPONSES                               */
+/* -------------------------------------------------------------------------- */
+window.addEventListener("message", async (event) => {
+    if (event.data.type === 'OCR_CAPTURE_READY') {
+        const output = document.getElementById('visual-output');
+        if (!output) return;
+        
+        output.innerText = "Processing captured region with Azure AI Vision...";
+        try {
+            const res = await fetch('http://localhost:3000/vision/ocr-explain', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: event.data.image })
+            });
+            const data = await res.json();
+            
+            // Store results for visual chat context
+            lastOcrResult = data.reply;
+            output.innerHTML = formatADHD(data.reply);
+        } catch (e) { 
+            output.innerText = "Visual analysis failed. Verify Azure credentials."; 
+        }
+    }
+});
+
+/* -------------------------------------------------------------------------- */
+/* VISUAL ANALYSIS HELPERS: UI UPDATES                                        */
+/* -------------------------------------------------------------------------- */
+function addVisualMsg(text, sender) {
+    const hist = document.getElementById('visual-chat-history');
+    if (!hist) return;
+    const msg = document.createElement('div');
+    msg.className = `ff-msg ${sender}`;
+    // Preserve bionic formatting for ADHD focus
+    msg.innerHTML = bionicActive ? applyBionic(text) : text;
+    hist.appendChild(msg);
+    hist.scrollTop = hist.scrollHeight;
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* TOPIC ANALYSIS ACTIONS (TAB E)                                             */
+/* -------------------------------------------------------------------------- */
+function setupTopicActions() {
+    const shredBtn = document.getElementById('trigger-video-shredder');
+    if (shredBtn) {
+        shredBtn.onclick = async () => {
+            const output = document.getElementById('topic-output');
+            output.innerHTML = "Performing deep topic analysis...";
+            
+            try {
+                // Call the Video Indexer logic on the backend
+                const res = await fetch(`http://localhost:3000/vision/video-topics?transcript=${encodeURIComponent(transcriptText)}`);
+                const data = await res.json();
+                
+                // Color code the segments based on Azure AI insights
+                output.innerHTML = data.topics
+                    .replace(/\[TOPIC: blue\]/g, '<div class="topic-tag blue">')
+                    .replace(/\[TOPIC: green\]/g, '<div class="topic-tag green">')
+                    .replace(/\[TOPIC: orange\]/g, '<div class="topic-tag orange">')
+                    .replace(/\[TOPIC: purple\]/g, '<div class="topic-tag purple">')
+                    .replace(/\n/g, '</div>');
+            } catch (e) {
+                output.innerHTML = "Topic analysis failed. Check Azure Indexer status.";
+            }
+        };
+    }
 }

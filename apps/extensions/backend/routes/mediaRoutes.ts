@@ -26,7 +26,7 @@ const sanitizeADHD = (text: string) => {
         .trim();
 };
 
-// --- ROUTE 1: AUDIO PROCESSING (Live Feed) ---
+// ROUTE 1: AUDIO PROCESSING (Live Feed)
 router.post('/process-audio', upload.single('audio'), async (req: any, res: any) => {
     try {
         if (!req.file) {
@@ -65,7 +65,7 @@ router.post('/process-audio', upload.single('audio'), async (req: any, res: any)
     }
 });
 
-// --- ROUTE 2: SMART NUGGETS (Gemini 2.5 Flash) ---
+//ROUTE 2: SMART NUGGETS (Groq)
 
 router.get('/meeting-summary', async (req: any, res: any) => {
     const { format } = req.query; // 'bullets', 'para', or 'flowchart'
@@ -111,40 +111,8 @@ router.get('/meeting-summary', async (req: any, res: any) => {
         res.status(500).json({ error: err.message });
     }
 });
-// router.get('/meeting-summary', async (req: any, res: any) => {
-//     const { format } = req.query; // 'bullets', 'para', or 'flowchart'
-    
-//     if (meetingTranscript.trim().length < 50) {
-//         return res.json({ reply: "Still listening to gather context...", fullTranscript: meetingTranscript });
-//     }
 
-//     console.log(`FocusFlow: Generating ${format || 'bulleted'} summary...`);
-
-//     try {
-//         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-        
-//         const prompt = `
-//         You are an ADHD study coach. Format the lecture into a structured list.
-//         STRICT FORMATTING RULES:
-//         1. NO markdown symbols (*, #, **).
-//         2. Use EXACTLY two newlines between every point for spacing.
-//         3. Use [TASK] before any assignment or deadline.
-//         4. Use [DEF] before any new term or definition.
-//         5. Use [KEY] for the single most important concept.
-//         Context: ${meetingTranscript.slice(-5000)}
-//     `;
-
-//         const result = await model.generateContent(prompt);
-//         const cleanReply = sanitizeADHD(result.response.text());
-
-//         res.json({ reply: cleanReply, fullTranscript: meetingTranscript });
-//     } catch (err: any) {
-//         console.error("FocusFlow: Summary Error:", err.message);
-//         res.status(500).json({ error: err.message });
-//     }
-// });
-
-// --- ROUTE 3: ASSISTANT CHAT (Groq / Llama 3) ---
+//ROUTE 3: ASSISTANT CHAT (Groq / Llama 3) 
 router.post('/meet-chat', async (req: any, res: any) => {
     const { message, history } = req.body;
     
@@ -158,7 +126,15 @@ router.post('/meet-chat', async (req: any, res: any) => {
                 { 
                     role: "system", 
                     content: `You are an ADHD Assistant. Provide short, structured, plain-text answers in bullet points such that they are ADHD - friendly. 
-                    NEVER use markdown symbols like * or #. Use the following lecture context: 
+                    NEVER use markdown symbols like * or #. 
+                    STRICT FORMATTING RULES:
+                    1. NO markdown symbols (*, #, **).
+                    2. Use EXACTLY two newlines between every point for spacing.
+                    3. Use [TASK] before any assignment or deadline.
+                    4. Use [DEF] before any new term or definition.
+                    5. Use [KEY] for the single most important concept.
+                    6. If format is 'flowchart', provide a numbered step-by-step logic list instead of bullets.
+                    7. The bullets must be short like 15 words atmost per bullet. EXplain properly in ADHD - friendly way and use the following lecture context: 
                     ${meetingTranscript.slice(-3000)}` 
                 },
                 ...history,
