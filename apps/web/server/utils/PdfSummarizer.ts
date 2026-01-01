@@ -42,73 +42,6 @@ export const chunkText = (
 };
 
 
-export const processPDFInBackground = async ({
-  contentId,
-  userId,
-  outputStyle,
-  initialResource,
-}: {
-  contentId: string;
-  userId: string;
-  outputStyle: OutputStyle;
-  initialResource?: any;
-}) => {
-  try {
-    let resource = initialResource;
-
-    // 1️⃣ Load DB record if not provided
-    if (!resource) {
-      const { resource: dbResource } =
-        await Content_outputsContainer.item(contentId, userId).read();
-      resource = dbResource;
-    }
-
-    if (!resource) {
-      throw new Error("Content output not found");
-    }
-
-    console.log(
-      `[PDFSummarizer] Loaded contentId=${contentId}, outputStyle=${outputStyle}`
-    );
-
-    // 2️⃣ Download PDF from Blob
-    const pdfBuffer = await downloadBlobAsBuffer(resource.rawStorageRef);
-
-    // 3️⃣ Extract text
-    const extractedText = await extractTextFromPDF(pdfBuffer);
-
-    // 4️⃣ Fetch user preferences
-    const preferences = await getUserPreferences(userId);
-
-    // 5️⃣ Delegate to shared worker
-    await processTextWorker({
-      contentId,
-      userId,
-      outputStyle,
-      text: extractedText,
-      preferences,
-    });
-
-    console.log(
-      `[PDFSummarizer] Worker dispatched for contentId=${contentId}`
-    );
-  } catch (error: any) {
-    console.error(
-      `[PDFSummarizer] FATAL ERROR for contentId=${contentId}`,
-      error
-    );
-
-    await Content_outputsContainer.item(contentId, userId).patch([
-      { op: "set", path: "/status", value: "FAILED" },
-      {
-        op: "set",
-        path: "/errorMessage",
-        value: error.message || "PDF processing failed",
-      },
-    ]);
-  }
-};
-
 /**
  * Extract text from PDF using pdfjs-dist
  */
@@ -139,6 +72,7 @@ export const extractTextFromPDF = async (
 
   return fullText;
 };
+
 
 
 
@@ -173,3 +107,79 @@ ${summary}
   return JSON.parse(result.response.text());
 };
 
+
+
+export const processPDFInBackground = async ({
+  contentId,
+  userId,
+  outputStyle,
+  initialResource,
+}: {
+  contentId: string;
+  userId: string;
+  outputStyle: OutputStyle;
+  initialResource?: any;
+}) => {
+  try {
+    let resource = initialResource;
+
+    // 1️⃣ Load DB record if not provided
+    if (!resource) {
+      const { resource: dbResource } =
+        await Content_outputsContainer.item(contentId, userId).read();
+      resource = dbResource;
+    }
+
+    if (!resource) {
+      throw new Error("Content output not found");
+    }
+
+    console.log(
+      `[PDFSummarizer] Loaded contentId=${contentId}, outputStyle=${outputStyle}`
+    );
+
+    // 2️⃣ Download PDF from Blob
+  const pdfBuffer = await downloadBlobAsBuffer(resource.rawStorageRef);
+
+    console.log(
+      `[PDF Worker] Downloaded PDF. Size=${pdfBuffer?.length}`
+    );
+
+    if (!Buffer.isBuffer(pdfBuffer) || pdfBuffer.length < 100) {
+      throw new Error("Uploaded PDF is invalid or empty");
+    }
+
+    // ✅ 3️⃣ Extract text (USE WORKING VERSION)
+    const extractedText = await extractTextFromPDF(pdfBuffer);
+
+    // 4️⃣ Fetch user preferences
+    const preferences = await getUserPreferences(userId);
+
+    // 5️⃣ Delegate to shared worker
+    await processTextWorker({
+      contentId,
+      userId,
+      outputStyle,
+      text: extractedText,
+      preferences,
+    });
+
+    console.log(
+      `[PDFSummarizer] Worker dispatched for contentId=${contentId}`
+    );
+  } catch (error: any) {
+    console.error(
+      `[PDFSummarizer] FATAL ERROR for contentId=${contentId}`,
+      error
+    );
+
+    await Content_outputsContainer.item(contentId, userId).patch([
+      { op: "set", path: "/status", value: "FAILED" },
+      {
+        op: "set",
+        path: "/errorMessage",
+        value: error.message || "PDF processing failed",
+      },
+    ]);
+  }
+};

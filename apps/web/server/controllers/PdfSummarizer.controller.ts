@@ -2,8 +2,8 @@ import { Request, Response } from "express";
 import { Content_outputsContainer } from "../lib/db.config";
 //import { processPDFInBackground } from "../utils/PdfSummarizer";
 import { getOutputStyleOrDefault } from "../utils/valid_get_outputstyles";
-import { processTextWorker } from "../utils/process.text.worker";
-import { extractTextFromPDF } from "../utils/PdfSummarizer";
+//import { processTextWorker } from "../utils/process.text.worker";
+import { processPDFInBackground } from "../utils/PdfSummarizer";
 import { getUserPreferences } from "../utils/getUserPreferences";
 export const triggerprocessingPDF = async (
   req: Request,
@@ -51,18 +51,16 @@ export const triggerprocessingPDF = async (
       ]);
     console.log(`[PDF Controller] Marked status as PROCESSING for contentId: ${contentId}`);
 
-    const extractedText = await extractTextFromPDF(
-      resource.rawStorageRef
-    );
+    //const extractedText = await extractTextFromPDF(pdfBuffer);
+
 
     const preferences = await getUserPreferences(userId);
 
-    processTextWorker({
+    processPDFInBackground({
       contentId,
       userId,
       outputStyle,
-      text: extractedText,
-      preferences,
+      initialResource: resource,
     });
 
     // 4️⃣ Fire background job (DO NOT await)
