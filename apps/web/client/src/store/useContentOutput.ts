@@ -4,14 +4,17 @@ import axios from "axios";
 const API_URL = import.meta.env.VITE_API_URL;
 axios.defaults.withCredentials = true;
 
+export type InputType = "text" | "pdf" | "link";
+export type OutputStyle = "summary" | "visual" | "flowchart" | "flashcards";
+
 export interface ContentOutput {
     contentId: string;
     contentOutputs: any[];
     createContentOutput: (inputType: string, storageRef: string) => Promise<string | undefined>;
     getContentOutputById: (contentId: string) => Promise<any>;
-    triggerProcessingPDF: (contentId: string) => Promise<any>;
-    triggerProcessingLink: (contentId: string) => Promise<any>;
-    triggerProcessingText: (contentId: string) => Promise<any>;
+    triggerProcessingPDF: (contentId: string,  outputStyle: OutputStyle) => Promise<any>;
+    triggerProcessingLink: (contentId: string, outputStyle: OutputStyle) => Promise<any>;
+    triggerProcessingText: (contentId: string, outputStyle: OutputStyle) => Promise<any>;
     getMyContentOutputs: () => Promise<any[]>;
 }
 
@@ -41,25 +44,25 @@ export const useContentOutputStore = create<ContentOutput>((set) => ({
             console.error("Error getting content output:", error);
         }
     },
-    triggerProcessingPDF: async(contentId: string) => {
+    triggerProcessingPDF: async(contentId: string, outputStyle) => {
         try{
-            const response = await axios.post(`${API_URL}/api/content_outputs/pdf/${contentId}/process`);
+            const response = await axios.post(`${API_URL}/api/content_outputs/pdf/${contentId}/process`, {outputStyle});
             return response.data;
         } catch (error) {
             console.error("Error triggering PDF processing:", error);
         }
     },
-    triggerProcessingLink: async(contentId: string) => {
+    triggerProcessingLink: async(contentId: string, outputStyle) => {
         try{
-            const response = await axios.post(`${API_URL}/api/content_outputs/link/${contentId}/process`);
+            const response = await axios.post(`${API_URL}/api/content_outputs/link/${contentId}/process`,{outputStyle});
             return response.data;
         } catch (error) {
             console.error("Error triggering Link processing:", error);
         }
     },
-    triggerProcessingText: async(contentId: string) => {
+    triggerProcessingText: async(contentId: string, outputStyle) => {
         try{
-            const response = await axios.post(`${API_URL}/api/content_outputs/text/${contentId}/process`);
+            const response = await axios.post(`${API_URL}/api/content_outputs/text/${contentId}/process`,{outputStyle});
             return response.data;
         } catch (error) {
             console.error("Error triggering Text processing:", error);

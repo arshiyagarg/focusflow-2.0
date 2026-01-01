@@ -1,7 +1,10 @@
+import { uploadToBlob } from "../lib/blob.config";
 import { Content_outputsContainer } from "../lib/db.config";
+import { VISUAL_PROMPT } from "./prompts";
+import { OutputStyle } from "../types/textprocessing";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { VISUAL_PROMPT } from "./prompts";
+
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
@@ -15,8 +18,7 @@ export const geminiModel = genAI.getGenerativeModel({
 
 
 
-
-export const generateVisualOutput = async ({
+export const processVisual = async ({
   contentId,
   userId,
   text,
@@ -25,15 +27,28 @@ export const generateVisualOutput = async ({
   contentId: string;
   userId: string;
   text: string;
-  preferences : any;
+  preferences: any;
 }) => {
-  const prompt = VISUAL_PROMPT(text,preferences);
+  const outputStyle: OutputStyle = "visual";
+
+  const prompt = VISUAL_PROMPT(text, preferences);
   const result = await geminiModel.generateContent(prompt);
-  const visualJSON = JSON.parse(result.response.text());
+
+  const generatedOutput = JSON.parse(result.response.text());
+
+  const processedFile = {
+    buffer: Buffer.from(JSON.stringify(generatedOutput)),
+    originalname: `${contentId}-${outputStyle}.json`,
+    mimetype: "application/json",
+  } as Express.Multer.File;
+
+  const { storageRef, blobName } = await uploadToBlob(processedFile, "text");
 
   await Content_outputsContainer.item(contentId, userId).patch([
-    { op: "set", path: "/processedData", value: visualJSON },
-    { op: "set", path: "/outputFormat", value: "VISUAL_JSON" },
+    { op: "set", path: "/processedBlobName", value: blobName },
+    { op: "set", path: "/processedStorageRef", value: storageRef },
+    { op: "set", path: "/processedContainerName", value: "content-text" },
+    { op: "set", path: "/outputStyle", value: outputStyle },
     { op: "set", path: "/status", value: "READY" },
     { op: "set", path: "/processedAt", value: new Date().toISOString() },
   ]);

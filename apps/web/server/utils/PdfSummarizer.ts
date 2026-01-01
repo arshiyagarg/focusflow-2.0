@@ -4,7 +4,7 @@ import { Content_outputsContainer, PreferencesContainer } from "../lib/db.config
 import { downloadBlobAsBuffer } from "../utils/blobDownloadHelper";
 import { processTextWorker } from "./process.text.worker";
 
-import { getUserPreferences } from "./getUserPreferences";
+import { getUserPreferences } from "./getUserPreference";
 import { OutputStyle } from "../types/textprocessing";
 
 

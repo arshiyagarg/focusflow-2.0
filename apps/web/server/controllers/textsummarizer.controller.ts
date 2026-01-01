@@ -6,7 +6,7 @@ import { processTextWorker } from "../utils/process.text.worker";
 import { getOutputStyleOrDefault } from "../utils/valid_get_outputstyles";
 
 import { OutputStyle } from "../types/textprocessing";
-import { getUserPreferences } from "../utils/getUserPreferences";
+import { getUserPreferences } from "../utils/getUserPreference";
 
 
 

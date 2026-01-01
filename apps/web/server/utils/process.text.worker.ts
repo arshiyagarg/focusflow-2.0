@@ -1,15 +1,15 @@
 import { OutputStyle } from "../types/textprocessing";
 import {
-  generateSummaryOutput,
+  processSummary,
 } from "../processors/summary.processor";
 import {
-  generateVisualOutput,
+  processVisual,
 } from "../processors/visual.processor";
 import {
-  generateFlowchartOutput,
+  processFlowchart,
 } from "../processors/flowchart.processor";
 import {
-  generateFlashcardsOutput,
+  processFlashcards,
 } from "../processors/flashcard.processor";
 import { Content_outputsContainer } from "../lib/db.config";
 
@@ -31,19 +31,19 @@ export const processTextWorker = async ({
 
     switch (outputStyle) {
       case "summary":
-        await generateSummaryOutput({ contentId, userId, text, preferences });
+        await   processSummary({ contentId, userId, text, preferences });
         break;
 
       case "visual":
-        await generateVisualOutput({ contentId, userId, text, preferences });
+        await   processVisual({ contentId, userId, text, preferences });
         break;
 
       case "flowchart":
-        await generateFlowchartOutput({ contentId, userId, text, preferences });
+        await   processFlowchart({ contentId, userId, text, preferences });
         break;
 
       case "flashcards":
-        await generateFlashcardsOutput({ contentId, userId, text, preferences });
+        await   processFlashcards({ contentId, userId, text, preferences });
         break;
 
       default:
