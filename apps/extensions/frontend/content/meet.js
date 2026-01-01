@@ -366,27 +366,34 @@ function setupVisualActions() {
     }
 
     // 4. Tab D: Mermaid Flowchart Logic (Audio-based logic flow)
-    const vShredBtn = document.getElementById('visual-shredder');
-    if (vShredBtn) {
-        vShredBtn.onclick = async () => {
-            const output = document.getElementById('visual-output');
-            output.innerHTML = "Generating Mermaid flowchart...";
-            try {
-                const res = await fetch('http://localhost:3000/media/shredder', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ transcript: transcriptText })
-                });
-                const data = await res.json();
-                
-                // Fix for Mermaid v10+ async rendering
-                output.innerHTML = `<pre class="mermaid">${data.mermaidCode}</pre>`;
-                await mermaid.run({ nodes: output.querySelectorAll('.mermaid') });
-            } catch (e) { 
-                output.innerHTML = "Error generating flowchart: " + e.message; 
-            }
-        };
+    // Ensure this is inside your setupVisualActions() function
+document.getElementById('visual-shredder').onclick = async () => {
+    const output = document.getElementById('visual-output');
+    output.innerHTML = "Generating ADHD-friendly flowchart...";
+    
+    try {
+        const res = await fetch('http://localhost:3000/media/shredder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ transcript: transcriptText })
+        });
+        const data = await res.json();
+        
+        // 1. Clean the code: Remove any markdown backticks the AI might have added
+        const cleanCode = data.mermaidCode.replace(/```mermaid|```/g, "").trim();
+        
+        // 2. Wrap in a div that Mermaid can find
+        output.innerHTML = `<div class="mermaid">${cleanCode}</div>`;
+        
+        // 3. FORCE RENDER (Critical for Mermaid v10+)
+        await mermaid.run({
+            nodes: output.querySelectorAll('.mermaid'),
+            suppressErrors: true
+        });
+    } catch (e) { 
+        output.innerHTML = "Flowchart error: " + e.message; 
     }
+};
 }
 
 /* -------------------------------------------------------------------------- */

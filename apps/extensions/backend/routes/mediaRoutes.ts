@@ -14,6 +14,26 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 let meetingTranscript = "";
 
+const ADHD_SYSTEM_PROMPT = `You are a specialized ADHD Study Coach. 
+Your goal is to provide the given lecture/information in a format and type of content that is visually clear, structured,ADHD-friendly and easy to process.
+
+STRICT FORMATTING RULES:
+1. NO MARKDOWN: Never use symbols like *, #, **, _, or ~ for bold/italics.
+2. BULLETED LISTS ONLY: Use a simple bullet (• or -) for every single point.
+3. WORD LIMIT: Keep every bullet point under 15 words.
+4. SPACING: Use EXACTLY two newlines between every bullet point to prevent visual clutter.
+5. COLOR-CODING TAGS: Use these tags at the START of relevant bullets:
+   - [TASK] for assignments, deadlines, or actions.
+   - [DEF] for new terms, definitions, or vocabulary.
+   - [KEY] for core concepts or the single most important takeaway.
+   
+Example format:
+[DEF] Photosynthesis: The process plants use to turn sunlight into food.
+
+[KEY] Light energy is converted into chemical energy in the chloroplasts.
+
+[TASK] Read chapter 4 for the lab on Monday.`;
+
 
 //  ADHD Sanitizer: Removes all Markdown noise (*, #, _, **) 
 //  to provide "naked text" and prevent visual overstimulation.
@@ -84,22 +104,14 @@ router.get('/meeting-summary', async (req: any, res: any) => {
             messages: [
                 { 
                     role: "system", 
-                    content: `You are an ADHD study coach. Format the lecture into a structured list.
-                    STRICT FORMATTING RULES:
-                    1. NO markdown symbols (*, #, **).
-                    2. Use EXACTLY two newlines between every point for spacing.
-                    3. Use [TASK] before any assignment or deadline.
-                    4. Use [DEF] before any new term or definition.
-                    5. Use [KEY] for the single most important concept.
-                    6. If format is 'flowchart', provide a numbered step-by-step logic list instead of bullets.
-                    7. The bullets must be short like 15 words atmost per bullet` 
+                    content: ADHD_SYSTEM_PROMPT
                 },
                 { 
                     role: "user", 
                     content: `Lecture Context: ${meetingTranscript.slice(-5000)}` 
                 }
             ],
-            temperature: 0.3 // Lower temperature ensures stricter adherence to formatting rules
+            temperature: 0.2 // Lower temperature ensures stricter adherence to formatting rules
         });
 
         const rawReply = response.choices[0]?.message?.content || "";
@@ -125,21 +137,12 @@ router.post('/meet-chat', async (req: any, res: any) => {
             messages: [
                 { 
                     role: "system", 
-                    content: `You are an ADHD Assistant. Provide short, structured, plain-text answers in bullet points such that they are ADHD - friendly. 
-                    NEVER use markdown symbols like * or #. 
-                    STRICT FORMATTING RULES:
-                    1. NO markdown symbols (*, #, **).
-                    2. Use EXACTLY two newlines between every point for spacing.
-                    3. Use [TASK] before any assignment or deadline.
-                    4. Use [DEF] before any new term or definition.
-                    5. Use [KEY] for the single most important concept.
-                    6. If format is 'flowchart', provide a numbered step-by-step logic list instead of bullets.
-                    7. The bullets must be short like 15 words atmost per bullet. EXplain properly in ADHD - friendly way and use the following lecture context: 
-                    ${meetingTranscript.slice(-3000)}` 
+                    content: ADHD_SYSTEM_PROMPT + `\n\nContext: ${meetingTranscript.slice(-3000)}` 
                 },
                 ...history,
                 { role: "user", content: message }
-            ]
+            ],
+            temperature: 0.2
         });
 
         const cleanReply = sanitizeADHD(response.choices[0]?.message?.content || "");
@@ -187,13 +190,41 @@ router.get('/topic-check', async (req: any, res: any) => {
 
 // Mermaid Shredder (using Groq for logic generation)
 router.post('/shredder', async (req: any, res: any) => {
-    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-    const response = await groq.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
-        messages: [{ role: "system", content: "Convert transcript to Mermaid graph TD code. ONLY return code." },
-                   { role: "user", content: req.body.transcript }]
-    });
-    res.json({ mermaidCode: response.choices[0]?.message?.content });
+    try {
+        const groq = getGroqClient();
+        const response = await groq.chat.completions.create({
+            model: "llama-3.3-70b-versatile",
+            messages: [
+                { 
+                    role: "system", 
+                    content: `You are an ADHD speacialist and you have to make the user understand the topic in an ADHD-friendly way such that its easy to process.
+                    Convert the provided transcript into a professional Mermaid.js TD flowchart.
+                    
+                    STRICT VISUAL RULES:
+                    1. Use 'graph TD'.
+                    2. Return ONLY the Mermaid code. No backticks, no explanations.
+                    3. Use short, clear labels (max 4 words per node).
+                    4. IMPORTANT: Apply ADHD-friendly color coding using these exact class definitions at the top of the graph:
+                       classDef defStyle fill:#fef9c3,stroke:#854d0e,stroke-width:2px;
+                       classDef taskStyle fill:#dcfce7,stroke:#166534,stroke-width:2px;
+                       classDef keyStyle fill:#e1f5fe,stroke:#01579b,stroke-width:4px;
+                    5. Assign these classes to relevant nodes using the ':::' syntax (e.g., A[Concept]:::defStyle).
+                       - Use defStyle for definitions.
+                       - Use taskStyle for assignments or steps.
+                       - Use keyStyle for the main core concepts.`
+                },
+                { 
+                    role: "user", 
+                    content: `Transcript: ${req.body.transcript}` 
+                }
+            ]
+        });
+
+        res.json({ mermaidCode: response.choices[0]?.message?.content || "" });
+    } catch (error: any) {
+        console.error("Shredder Error:", error.message);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 export default router;

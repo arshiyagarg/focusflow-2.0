@@ -205,7 +205,6 @@ b {
 .topic-tag.orange { background: #fff7ed; border-color: #f97316; color: #9a3412; }
 .topic-tag.purple { background: #faf5ff; border-color: #a855f7; color: #6b21a8; }
 
-/* apps/extensions/frontend/style.css */
 
 .topic-card {
     padding: 12px;
@@ -239,6 +238,27 @@ b {
     background-color: #faf5ff; /* Soft Purple */
     border-color: #a855f7;
     color: #6b21a8;
+}
+
+
+.mermaid {
+    background: #ffffff;
+    display: flex;
+    justify-content: center;
+    padding: 15px;
+    border-radius: 12px;
+    margin-top: 10px;
+}
+
+/* Ensure the SVG scales properly inside the dashboard */
+.mermaid svg {
+    max-width: 100% !important;
+    height: auto !important;
+}
+
+/* Added spacing for visual clarity between nodes */
+.node rect, .node circle, .node polygon {
+    filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.1));
 }
 
 .highlight-task { background-color: #dcfce7 !important; color: #166534; padding: 2px 4px; border-radius: 4px; font-weight: 700; }
