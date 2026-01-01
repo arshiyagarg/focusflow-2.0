@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { Content_outputsContainer } from "../lib/db.config";
 import { processVideoInBackground } from "../utils/VideoSummarizer";
+import { getOutputStyleOrDefault } from "../utils/valid_get_outputstyles";
 
 export const triggerProcessingVideo = async (req: Request, res: Response) => {
   console.log(`[Video Controller] ${new Date().toISOString()} - Triggering processing for contentId: ${req.params.contentId}`);
@@ -9,6 +10,7 @@ export const triggerProcessingVideo = async (req: Request, res: Response) => {
     const { contentId } = req.params;
     // Assuming 'req.user' is populated by your auth middleware
     const userId = (req as any).user?.id; 
+    const outputStyle = getOutputStyleOrDefault(req.body?.outputStyle);
 
     if (!userId) {
         return res.status(401).json({ message: "Unauthorized: User ID missing" });
@@ -49,6 +51,7 @@ export const triggerProcessingVideo = async (req: Request, res: Response) => {
       userId,
       inputType: "VIDEO_LOCAL", // e.g., 'VIDEO_LOCAL', 'VIDEO_LINK'
       storageRef: resource.rawStorageRef, // e.g., the blob URL
+      outputStyle,
     });
 
     // 5️⃣ Respond Immediately to the Client
