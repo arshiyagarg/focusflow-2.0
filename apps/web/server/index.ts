@@ -8,7 +8,7 @@ import preferenceRoutes from "./routes/preferences.route";
 import contentOutputRoutes from "./routes/content_outputs.routes";
 import storageRoutes from "./routes/storage.routes";
 import videoRoutes from "./routes/video.routes";
-//import processingRoutes from "./routes/processing.routes";
+import sessionRoutes from "./routes/session.route";
 
 import { connectDB } from "./lib/db.config";
 // Professional polyfill to support Azure SDK in Node.js environments
@@ -39,17 +39,15 @@ app.use("/api/preferences", preferenceRoutes);
 app.use("/api/content_outputs", contentOutputRoutes);
 app.use("/api/storage", storageRoutes);
 app.use("/api/content/video", videoRoutes);
-//app.use("/api/process", processingRoutes);
-
+app.use("/api/progress", progressRoutes);
+app.use("/api/session", sessionRoutes);
 
 app.get("/api/status", (req, res) => {
   res.json({ message: "Backend is reachable from Frontend", db: "Connected" });
 });
-app.use("/api/progress", progressRoutes);
 
 app.listen(PORT, async () => {
     console.log(`Server Starting : http://localhost:${PORT}`);
     await connectDB();
     await checkBlobConnection();
 })
-
