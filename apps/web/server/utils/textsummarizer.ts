@@ -2,7 +2,7 @@ import axios from "axios";
 import { uploadToBlob } from "../lib/blob.config";
 import { Content_outputsContainer } from "../lib/db.config";
 import { downloadBlobAsBuffer } from "./blobDownloadHelper";
-import { getUserPreferences } from "./getUserPreferences";
+import { getUserPreferences } from "./getUserPreference";
 import { processTextWorker } from "../utils/process.text.worker";
 import { OutputStyle } from "../types/textprocessing";
 

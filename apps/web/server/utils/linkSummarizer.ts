@@ -3,7 +3,7 @@ import * as cheerio from "cheerio";
 import { uploadToBlob } from "../lib/blob.config";
 import { Content_outputsContainer, PreferencesContainer } from "../lib/db.config";
 
-import { getUserPreferences } from "./getUserPreferences";
+import { getUserPreferences } from "./getUserPreference";
 import { processTextWorker } from "./process.text.worker";
 import { OutputStyle } from "../types/textprocessing";
 

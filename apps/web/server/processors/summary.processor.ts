@@ -1,8 +1,7 @@
-import { Content_outputsContainer, PreferencesContainer } from "../lib/db.config";
-import { generateBionicJSON } from "../utils/PdfSummarizer";
 import { uploadToBlob } from "../lib/blob.config";
+import { Content_outputsContainer } from "../lib/db.config";
 import { SUMMARY_PROMPT } from "./prompts";
-
+import { OutputStyle } from "../types/textprocessing";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
@@ -17,7 +16,7 @@ export const geminiModel = genAI.getGenerativeModel({
 });
 
 
-export const generateSummaryOutput = async ({
+export const processSummary = async ({
   contentId,
   userId,
   text,
@@ -28,26 +27,29 @@ export const generateSummaryOutput = async ({
   text: string;
   preferences: any;
 }) => {
-  const prompt = SUMMARY_PROMPT(text,PreferencesContainer);
+  const outputStyle: OutputStyle = "summary";
+
+  const prompt = SUMMARY_PROMPT(text, preferences);
   const result = await geminiModel.generateContent(prompt);
-  const { summary } = JSON.parse(result.response.text());
 
-  const bionicJSON = await generateBionicJSON(summary, preferences);
+  const generatedOutput = JSON.parse(result.response.text());
 
-
-
-  const file = {
-    buffer: Buffer.from(JSON.stringify(bionicJSON)),
-    originalname: `${contentId}-bionic.json`,
+  // 🔹 Wrap JSON as file
+  const processedFile = {
+    buffer: Buffer.from(JSON.stringify(generatedOutput)),
+    originalname: `${contentId}-${outputStyle}.json`,
     mimetype: "application/json",
   } as Express.Multer.File;
 
-  const { storageRef, blobName } = await uploadToBlob(file, "text");
+  // 🔹 Upload to SAME container
+  const { storageRef, blobName } = await uploadToBlob(processedFile, "text");
 
+  // 🔹 Update DB
   await Content_outputsContainer.item(contentId, userId).patch([
-    { op: "set", path: "/processedStorageRef", value: storageRef },
     { op: "set", path: "/processedBlobName", value: blobName },
-    { op: "set", path: "/outputFormat", value: "BIONIC_TEXT" },
+    { op: "set", path: "/processedStorageRef", value: storageRef },
+    { op: "set", path: "/processedContainerName", value: "content-text" },
+    { op: "set", path: "/outputStyle", value: outputStyle },
     { op: "set", path: "/status", value: "READY" },
     { op: "set", path: "/processedAt", value: new Date().toISOString() },
   ]);

@@ -5,7 +5,7 @@ import { Content_outputsContainer } from "../lib/db.config";
 import { getOutputStyleOrDefault } from "../utils/valid_get_outputstyles";
 import { processTextWorker } from "../utils/process.text.worker";
 import { extractTextFromURL } from "../utils/linkSummarizer";
-import { getUserPreferences } from "../utils/getUserPreferences";
+import { getUserPreferences } from "../utils/getUserPreference";
 
 export const triggerprocessingLink = async (
   req: Request,

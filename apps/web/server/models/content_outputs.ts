@@ -31,7 +31,7 @@ export interface Content_outputs {
 
   /** Blob metadata for processed output */
   processedBlobName?: string;
-  processedContainerName?: string; // e.g. content-processed
+  processedContainerName: string; // e.g. content-processed
 
   /** Processing lifecycle */
   status: ProcessingStatus;
