@@ -2,7 +2,7 @@ import { uploadToBlob } from "../lib/blob.config";
 import { Content_outputsContainer } from "../lib/db.config";
 import { SUMMARY_PROMPT } from "./prompts";
 import { OutputStyle } from "../types/textprocessing";
-
+import { generateBionicJSON } from "../utils/PdfSummarizer";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
@@ -32,11 +32,58 @@ export const processSummary = async ({
   const prompt = SUMMARY_PROMPT(text, preferences);
   const result = await geminiModel.generateContent(prompt);
 
-  const generatedOutput = JSON.parse(result.response.text());
+
+  const rawText = result.response.text();
+
+// Try JSON parse safely
+let generatedOutput: any;
+try {
+  generatedOutput = JSON.parse(rawText);
+} catch {
+  generatedOutput = rawText;
+}
+
+// 🔹 Extract summary text safely
+let summaryText = "";
+
+// Case 1: paragraphs → sentences
+if (generatedOutput?.paragraphs?.length) {
+  summaryText = generatedOutput.paragraphs
+    .flatMap((p: any) =>
+      Array.isArray(p.sentences)
+        ? p.sentences.map((s: any) => s.text)
+        : []
+    )
+    .join(" ");
+}
+
+// Case 2: summary field
+else if (typeof generatedOutput?.summary === "string") {
+  summaryText = generatedOutput.summary;
+}
+
+// Case 3: content field
+else if (typeof generatedOutput?.content === "string") {
+  summaryText = generatedOutput.content;
+}
+
+// Case 4: plain string
+else if (typeof generatedOutput === "string") {
+  summaryText = generatedOutput;
+}
+
+// 🚨 Final guard
+if (!summaryText || !summaryText.trim()) {
+  console.error("Gemini raw output:", rawText);
+  throw new Error("Summary text extraction failed");
+}
+const bionicJSON = await generateBionicJSON(summaryText, preferences);
+
+
 
   // 🔹 Wrap JSON as file
   const processedFile = {
-    buffer: Buffer.from(JSON.stringify(generatedOutput)),
+    buffer: Buffer.from(JSON.stringify(bionicJSON)),
     originalname: `${contentId}-${outputStyle}.json`,
     mimetype: "application/json",
   } as Express.Multer.File;
