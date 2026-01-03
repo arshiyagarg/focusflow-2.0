@@ -21,11 +21,14 @@ import { useUploadStore } from "@/store/useUploadStore";
 import { htmlToPlainText, urlToFileName } from "@/lib/utils";
 import { contentToPlainText } from "@/store/contentforlearninghistory";
 import { Button } from "@/components/ui/button";
+import { useStudyStore } from "@/store/useStudyTemp";
 
 type ViewMode = "grid" | "detail";
 
 export const MyLearningHistory = () => {
   const { contentOutputs = [], getMyContentOutputs } = useContentOutputStore();
+  const { startSession, endSession } = useStudyStore();
+  const { contentOutputs, getMyContentOutputs } = useContentOutputStore();
   const { getBlobContent } = useUploadStore();
 
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
@@ -62,6 +65,9 @@ export const MyLearningHistory = () => {
   };
 
   const handleView = async (output: any) => {
+    console.log("[Learning History] Starting session for history item");
+    await startSession(output.contentId); // Start session in backend
+
     setActiveId(output.contentId);
     setLoadingId(output.contentId);
     setPreviewText("");
@@ -123,6 +129,12 @@ export const MyLearningHistory = () => {
   if (viewMode === "detail") {
     const activeItem = contentOutputs.find(o => o.contentId === activeId);
     const filename = activeItem ? urlToFileName(activeItem.rawStorageRef || "") : "Summary";
+  // ---------------- CLOSE PREVIEW ----------------
+  const closePreview = async () => {
+    console.log("[Learning History] Closing history preview");
+    await endSession(); // End session in backend
+    setIsPreviewOpen(false);
+  };
 
     return (
       <div className="flex flex-col h-[calc(100vh-180px)] glass-card overflow-hidden animate-fade-in">
