@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, FileText, CheckCircle2 } from "lucide-react";
+import { Loader2, FileText, CheckCircle2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import { useContentOutputStore } from "@/store/useContentOutput";
@@ -22,6 +22,7 @@ export const ProcessedContentDisplay = () => {
   const { getBlobContent } = useUploadStore();
 
   const [status, setStatus] = useState<string>("IDLE");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [outputStyle, setOutputStyle] = useState<OutputStyle | null>(null);
   const [processedData, setProcessedData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -34,38 +35,35 @@ export const ProcessedContentDisplay = () => {
     let interval: NodeJS.Timeout;
 
     const poll = async () => {
-      console.log("[ProcessedContentDisplay] Triggered")
       console.log("[ProcessedContentDisplay] Polling for", currentContentId); 
       try {
         const output = await getContentOutputById(currentContentId);
-        console.log("[ProcessedContentDisplay] Output: ", output);
         if (!output) return;
 
         setStatus(output.status);
 
+        if (output.status === "FAILED") {
+          clearInterval(interval);
+          setErrorMessage(output.error || "An unknown error occurred during processing.");
+        }
+
         if (output.status === "READY") {
           clearInterval(interval);
+          setErrorMessage(null);
 
-          //setOutputStyle(output.outputStyle);
+          // ... rest of the logic
           let data: any=null;
-          // SUMMARY → fetch from blob
           if (output.processed.blobName) {
-            data = await getBlobContent(
-              "text",
-              output.processed.blobName
-            );
-            console.log("[ProcessedContentDisplay] Blob: ", data);
-          }
-          // VISUAL / FLOW / FLASHCARDS → JSON
-          else if (output.processedData) {
+            data = await getBlobContent("text", output.processed.blobName);
+          } else if (output.processedData) {
             data=output.processedData;
           }
+          
           if (data) {
-          setProcessedData(data);
-
-          const detectedStyle = detectOutputStyle(data);
-          setOutputStyle(detectedStyle);
-        }
+            setProcessedData(data);
+            const detectedStyle = detectOutputStyle(data);
+            setOutputStyle(detectedStyle);
+          }
         }
       } catch (err) {
         console.error("Polling failed:", err);
@@ -77,12 +75,16 @@ export const ProcessedContentDisplay = () => {
     return () => clearInterval(interval);
   }, [currentContentId]);
 
+  const handleReset = () => {
+    // Assuming we might have a reset function in the store, or we just notify user
+    // For now, let's just clear local state. Ideally we'd reset the store's currentContentId.
+    setStatus("IDLE");
+    setErrorMessage(null);
+    setProcessedData(null);
+  };
+
   /* ---------------- GUARDS ---------------- */
   if (!currentContentId) return null;
-  
-
-
- 
 
   /* ---------------- UI ---------------- */
   return (
@@ -108,11 +110,37 @@ export const ProcessedContentDisplay = () => {
                 Ready
               </span>
             )}
+            {status === "FAILED" && (
+              <span className="flex items-center gap-1 text-red-600">
+                <X className="w-3 h-3" />
+                Failed
+              </span>
+            )}
           </div>
         </div>
 
+        {/* FAILURE MESSAGE */}
+        {status === "FAILED" && (
+          <div className="p-4 bg-red-50 border border-red-100 rounded-lg space-y-3 animate-in fade-in slide-in-from-top-1">
+            <div className="text-sm text-red-700 font-medium">
+              Processing encountered an issue:
+            </div>
+            <div className="text-xs text-red-600 bg-white/50 p-2 rounded border border-red-50 font-mono">
+              {errorMessage}
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleReset}
+              className="text-red-600 border-red-200 hover:bg-red-50"
+            >
+              Try Another content
+            </Button>
+          </div>
+        )}
+
         {/* RENDER OUTPUT */}
-        {processedData && outputStyle && (
+        {processedData && outputStyle && status === "READY" && (
           <div className="max-h-72 overflow-y-auto p-4 bg-muted/30 rounded-lg">
             {outputStyle === "summary" && (
               <SummaryRenderer data={processedData} />
@@ -140,7 +168,7 @@ export const ProcessedContentDisplay = () => {
       </div>
 
       {/* PREVIEW MODAL */}
-      {showPreview && processedData && (
+      {showPreview && processedData && outputStyle && (
         <OutputPreviewModal
           content={contentToPlainText(processedData,outputStyle)}
           onClose={() => setShowPreview(false)}
