@@ -72,12 +72,12 @@ export const OutputPreviewModal = ({
         </div>
 
         {/* CONTENT AREA */}
-        <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
-          <div 
-            className="text-lg leading-relaxed text-[#2D1B18] font-medium selection:bg-[#4A6741]/20"
-            dangerouslySetInnerHTML={{ __html: content }} 
-          />
-        </div>
+         <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
+  <div
+    className="text-lg leading-relaxed text-[#2D1B18] font-medium selection:bg-[#4A6741]/20 whitespace-pre-line"
+    dangerouslySetInnerHTML={{ __html: content }}
+  />
+</div>
 
         {/* FOOTER */}
         <div className="pt-6 mt-6 border-t border-[#E8E1D5] flex justify-between items-center">
