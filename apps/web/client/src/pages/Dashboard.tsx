@@ -25,7 +25,7 @@ import { AIBodyDouble } from "@/components/dashboard/AIBodyDouble";
 import TextInputTab from "../pages/TextInputTab";
 import { ContentUploadVideo } from "@/components/dashboard/ContentUploadVideo";
 import VideoInputTab from "./VideoInputTab";
-
+import { FocusScoreBadge } from "@/components/dashboard/FocusScoreBadge";
 
 /* ------------------------------------------------------------------ */
 /* TYPES */
@@ -153,9 +153,14 @@ const Dashboard = () => {
             <p className="text-sm text-muted-foreground">Welcome back, {user.name}</p>
           </div>
           
-          <div className="px-4 py-2 rounded-full bg-sage-50 border border-sage-200 text-xs font-bold text-sage-700">
-            {preferences?.aiEvaluation?.focusIntensity || "Syncing"} Focus Mode
-          </div>
+          <div className="flex items-center gap-3">
+    {/* PERSISTENT MOTIVATION: The live focus score */}
+    <FocusScoreBadge />
+    
+    <div className="px-4 py-2 rounded-full bg-sage-50 border border-sage-200 text-xs font-bold text-sage-700">
+      {preferences?.aiEvaluation?.focusIntensity || "Syncing"} Focus Mode
+    </div>
+  </div>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

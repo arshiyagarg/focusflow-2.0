@@ -2,6 +2,8 @@ import { create } from "zustand";
 import axios from "axios";
 import { useFocusStore } from "./useFocusStore";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export type InputType = "text" | "pdf" | "link" | "video";
 
 interface StudyStreak {
@@ -18,8 +20,18 @@ interface StudyTempState {
 
   processingStarted: boolean;
 
+  // Quiz State
+  activeQuiz: any | null;
+  showQuiz: boolean;
+
   setCurrentContent: (id: string, type: InputType) => void;
   setProcessingStarted: (value: boolean) => void;
+
+  // Quiz Actions
+  setQuiz: (quiz: any) => void;
+  setShowQuiz: (val: boolean) => void;
+  fetchQuiz: (content: string) => Promise<void>;
+
   resetProcessing: () => void;
 
   /* ---------------- CONTENT LIST ---------------- */
@@ -51,6 +63,23 @@ export const useStudyStore = create<StudyTempState>((set, get) => ({
   currentContentId: null,
   currentInputType: null,
   processingStarted: false,
+
+  activeQuiz: null,
+  showQuiz: false,
+
+  setQuiz: (quiz) => set({ activeQuiz: quiz }),
+  setShowQuiz: (val) => set({ showQuiz: val }),
+
+  fetchQuiz: async (content) => {
+    console.log("[Study Store] fetchQuiz Triggered");
+    try {
+      const response = await axios.post(`${API_URL}/api/content/generate-quiz`, { content });
+      console.log("[Study Store] Quiz received:", response.data);
+      set({ activeQuiz: response.data, showQuiz: true });
+    } catch (error) {
+      console.error("[Study Store] fetchQuiz Error:", error);
+    }
+  },
 
   setCurrentContent: (id, type) =>
     set({
@@ -110,7 +139,7 @@ export const useStudyStore = create<StudyTempState>((set, get) => ({
 
       // 2. Notify backend to create or resume a session
       const response = await axios.post(
-        "http://localhost:3001/api/session/createOrUpdateSession", 
+        `${API_URL}/api/session/createOrUpdateSession`, 
         { contentId },
         { withCredentials: true }
       );
@@ -139,10 +168,16 @@ export const useStudyStore = create<StudyTempState>((set, get) => ({
     const finalFocusScore = useFocusStore.getState().score;
     console.log(`[Study Store] endSession Triggered. Final Score: ${finalFocusScore}`);
 
+    // MOTIVATION TRIGGER: Trigger a "Success" toast for high scores
+  if (finalFocusScore >= 80) {
+    // You can trigger your useToast here
+    console.log("[Dopamine Hit] Achievement Unlocked: High Flow State Session");
+  }
+
     try {
       // 1. Send final focus score to backend to finalize the session record
       const response = await axios.post(
-        "http://localhost:3001/api/session/endSession",
+        `${API_URL}/api/session/endSession`,
         { focusScore: finalFocusScore },
         { withCredentials: true }
       );
@@ -150,7 +185,7 @@ export const useStudyStore = create<StudyTempState>((set, get) => ({
       console.log("[Study Store] Backend endSession response:", response.data);
 
       // 2. Clear current session state
-      set({ currentSession: null });
+      set({ currentSession: null, activeQuiz: null, showQuiz: false });
       console.log("[Study Store] currentSession cleared locally");
 
     } catch (error) {

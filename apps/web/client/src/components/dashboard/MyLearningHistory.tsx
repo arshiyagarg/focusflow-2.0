@@ -8,6 +8,7 @@ import { useUploadStore } from "@/store/useUploadStore";
 import { htmlToPlainText, urlToFileName } from "@/lib/utils";
 import { contentToPlainText } from "@/store/contentforlearninghistory";
 import { useStudyStore } from "@/store/useStudyTemp";
+import { useFocusTracker } from "@/hooks/useFocusTracker";
 
 
 export const MyLearningHistory = () => {
@@ -25,6 +26,9 @@ export const MyLearningHistory = () => {
   }, [getMyContentOutputs]);
 
   // ---------------- VIEW ----------------
+
+  useFocusTracker(isPreviewOpen);
+  
   const handleView = async (output: any) => {
     if (output.status !== "READY" || !output.processedBlobName) return;
 
