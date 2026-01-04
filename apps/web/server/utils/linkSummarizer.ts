@@ -1,13 +1,13 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
-import { uploadToBlob } from "../lib/blob.config";
-import { Content_outputsContainer, PreferencesContainer } from "../lib/db.config";
+import { uploadToBlob } from "../lib/blob.config.js";
+import { Content_outputsContainer, PreferencesContainer } from "../lib/db.config.js";
 
-import { getUserPreferences } from "./getUserPreference";
-import { processTextWorker } from "./process.text.worker";
-import { OutputStyle } from "../types/textprocessing";
+import { getUserPreferences } from "./getUserPreference.js";
+import { processTextWorker } from "./process.text.worker.js";
+import { OutputStyle } from "../types/textprocessing.js";
 
-import { downloadBlobAsBuffer } from "../utils/blobDownloadHelper";
+import { downloadBlobAsBuffer } from "../utils/blobDownloadHelper.js";
 
 
 export const extractTextFromURL = async (url: string): Promise<string> => {

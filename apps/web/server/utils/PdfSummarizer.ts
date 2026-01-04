@@ -1,11 +1,11 @@
 import axios from "axios";
-import { uploadToBlob } from "../lib/blob.config";
-import { Content_outputsContainer, PreferencesContainer } from "../lib/db.config";
-import { downloadBlobAsBuffer } from "../utils/blobDownloadHelper";
-import { processTextWorker } from "./process.text.worker";
+import { uploadToBlob } from "../lib/blob.config.js";
+import { Content_outputsContainer, PreferencesContainer } from "../lib/db.config.js";
+import { downloadBlobAsBuffer } from "../utils/blobDownloadHelper.js";
+import { processTextWorker } from "./process.text.worker.js";
 
-import { getUserPreferences } from "./getUserPreference";
-import { OutputStyle } from "../types/textprocessing";
+import { getUserPreferences } from "./getUserPreference.js";
+import { OutputStyle } from "../types/textprocessing.js";
 
 
 // ✅ CORRECT pdfjs import for Node 20 + ESM

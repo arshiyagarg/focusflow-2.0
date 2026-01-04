@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { NextFunction, Request, Response } from "express";
-import { UserContainer } from "../lib/db.config";
+import { UserContainer } from "../lib/db.config.js";
 
 export const protectRoute = async (req: Request, res: Response, next: NextFunction) => {
     try {

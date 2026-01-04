@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { protectRoute } from "../middleware/auth.middleware";
-import { uploadFile, getDownloadUrl, getBlobContent } from "../controllers/blobStorage.controller";
+import { protectRoute } from "../middleware/auth.middleware.js";
+import { uploadFile, getDownloadUrl, getBlobContent } from "../controllers/blobStorage.controller.js";
 import multer from "multer";
 
 const router = Router();

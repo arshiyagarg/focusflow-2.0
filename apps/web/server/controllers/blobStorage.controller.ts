@@ -1,8 +1,8 @@
 /// <reference types="multer" />
 import { Request, Response } from "express";
 import { BlobSASPermissions } from "@azure/storage-blob";
-import { uploadToBlob, getContainerClient } from "../lib/blob.config";
-import { InputType } from "../models/content_outputs";
+import { uploadToBlob, getContainerClient } from "../lib/blob.config.js";
+import { InputType } from "../models/content_outputs.js";
 
 export const uploadFile = async (req: Request, res: Response) => {
   try {

@@ -1,12 +1,12 @@
 import { Request, Response } from "express";
-import { Content_outputsContainer } from "../lib/db.config";
+import { Content_outputsContainer } from "../lib/db.config.js";
 //import { processTextInBackground } from "../utils/textsummarizer";
-import { processTextWorker } from "../utils/process.text.worker";
+import { processTextWorker } from "../utils/process.text.worker.js";
 
-import { getOutputStyleOrDefault } from "../utils/valid_get_outputstyles";
+import { getOutputStyleOrDefault } from "../utils/valid_get_outputstyles.js";
 
-import { OutputStyle } from "../types/textprocessing";
-import { getUserPreferences } from "../utils/getUserPreference";
+import { OutputStyle } from "../types/textprocessing.js";
+import { getUserPreferences } from "../utils/getUserPreference.js";
 
 
 

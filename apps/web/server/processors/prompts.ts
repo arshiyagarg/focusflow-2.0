@@ -1,4 +1,4 @@
-import { buildPreferenceContext } from "./promts.utils";
+import { buildPreferenceContext } from "./promts.utils.js";
 
 export const SUMMARY_PROMPT = (
   text: string,

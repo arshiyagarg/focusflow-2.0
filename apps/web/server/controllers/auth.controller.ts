@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
-import { UserContainer } from "../lib/db.config";
-import { User } from "../models/User";
+import { UserContainer } from "../lib/db.config.js";
+import { User } from "../models/User.js";
 import bcrypt from "bcryptjs";
 import { v4 as uuid } from "uuid";
-import { generateToken } from "../utils/util";
+import { generateToken } from "../utils/util.js";
 
 export const register = async (req: Request, res: Response) => {
     const { email, password, fullName } = req.body;

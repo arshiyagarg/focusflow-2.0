@@ -3,11 +3,11 @@ import path from "path";
 import os from "os";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GoogleAIFileManager, FileState } from "@google/generative-ai/server";
-import { Content_outputsContainer } from "../lib/db.config";
-import { downloadBlobToFilePath, uploadToBlob } from "../utils/blobDownloadHelper";
-import { getUserPreferences } from "../utils/getUserPreference";
-import { processTextWorker } from "./process.text.worker";
-import { OutputStyle } from "../types/textprocessing";
+import { Content_outputsContainer } from "../lib/db.config.js";
+import { downloadBlobToFilePath, uploadToBlob } from "../utils/blobDownloadHelper.js";
+import { getUserPreferences } from "../utils/getUserPreference.js";
+import { processTextWorker } from "./process.text.worker.js";
+import { OutputStyle } from "../types/textprocessing.js";
 
 // Initialize Gemini Clients
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY as string);

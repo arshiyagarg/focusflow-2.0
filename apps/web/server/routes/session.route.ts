@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { createOrUpdateSession, endSession } from "../controllers/session.controller";
-import { protectRoute } from "../middleware/auth.middleware";
+import { createOrUpdateSession, endSession } from "../controllers/session.controller.js";
+import { protectRoute } from "../middleware/auth.middleware.js";
 
 const router = Router();
 

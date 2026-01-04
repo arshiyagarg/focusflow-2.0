@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { saveUserPreferences, getUserPreferences } from "../controllers/preferences.controller";
-import { protectRoute } from "../middleware/auth.middleware";
+import { saveUserPreferences, getUserPreferences } from "../controllers/preferences.controller.js";
+import { protectRoute } from "../middleware/auth.middleware.js";
 
 
 const router = Router();

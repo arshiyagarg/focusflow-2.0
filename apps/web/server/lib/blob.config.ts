@@ -1,6 +1,6 @@
 /// <reference types="multer" />
 import { BlobServiceClient } from "@azure/storage-blob";
-import { InputType } from "../models/content_outputs";
+import { InputType } from "../models/content_outputs.js";
 
 import dotenv from "dotenv";
 dotenv.config();

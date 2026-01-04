@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { triggerProcessingVideo } from "../controllers/VideoSummarizer.controller";
+import { triggerProcessingVideo } from "../controllers/VideoSummarizer.controller.js";
 
-import { protectRoute } from "../middleware/auth.middleware"; 
+import { protectRoute } from "../middleware/auth.middleware.js"; 
 
 const router = Router();
 

@@ -1,13 +1,13 @@
 import { Router } from "express";
-import { protectRoute } from "../middleware/auth.middleware";
+import { protectRoute } from "../middleware/auth.middleware.js";
 import {
   createContentOutput,
   getContentOutputById,
   getMyContentOutputs,
-} from "../controllers/content_outputs.controller";
-import { triggerprocessingPDF } from "../controllers/PdfSummarizer.controller";
-import { triggerprocessingLink } from "../controllers/LinkSummarizer.controller";
-import { triggerprocessingText } from "../controllers/textsummarizer.controller";
+} from "../controllers/content_outputs.controller.js";
+import { triggerprocessingPDF } from "../controllers/PdfSummarizer.controller.js";
+import { triggerprocessingLink } from "../controllers/LinkSummarizer.controller.js";
+import { triggerprocessingText } from "../controllers/textsummarizer.controller.js";
 
 const router = Router();
 

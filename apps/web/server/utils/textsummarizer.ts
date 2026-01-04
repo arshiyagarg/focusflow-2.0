@@ -1,10 +1,10 @@
 import axios from "axios";
-import { uploadToBlob } from "../lib/blob.config";
-import { Content_outputsContainer } from "../lib/db.config";
-import { downloadBlobAsBuffer } from "./blobDownloadHelper";
-import { getUserPreferences } from "./getUserPreference";
-import { processTextWorker } from "../utils/process.text.worker";
-import { OutputStyle } from "../types/textprocessing";
+import { uploadToBlob } from "../lib/blob.config.js";
+import { Content_outputsContainer } from "../lib/db.config.js";
+import { downloadBlobAsBuffer } from "./blobDownloadHelper.js";
+import { getUserPreferences } from "./getUserPreference.js";
+import { processTextWorker } from "../utils/process.text.worker.js";
+import { OutputStyle } from "../types/textprocessing.js";
 
 /**
  * Background bootstrapper for TEXT processing

@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import { Content_outputsContainer } from "../lib/db.config";
-import { processVideoInBackground } from "../utils/VideoSummarizer";
-import { getOutputStyleOrDefault } from "../utils/valid_get_outputstyles";
+import { Content_outputsContainer } from "../lib/db.config.js";
+import { processVideoInBackground } from "../utils/VideoSummarizer.js";
+import { getOutputStyleOrDefault } from "../utils/valid_get_outputstyles.js";
 
 export const triggerProcessingVideo = async (req: Request, res: Response) => {
   console.log(`[Video Controller] ${new Date().toISOString()} - Triggering processing for contentId: ${req.params.contentId}`);

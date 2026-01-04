@@ -1,4 +1,4 @@
-import { PreferencesContainer } from "../lib/db.config";
+import { PreferencesContainer } from "../lib/db.config.js";
 
 /**
  * Fetch user preferences safely.

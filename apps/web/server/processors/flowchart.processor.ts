@@ -1,8 +1,8 @@
 
-import { uploadToBlob } from "../lib/blob.config";
-import { Content_outputsContainer } from "../lib/db.config";
-import { FLOWCHART_PROMPT } from "./prompts";
-import { OutputStyle } from "../types/textprocessing";
+import { uploadToBlob } from "../lib/blob.config.js";
+import { Content_outputsContainer } from "../lib/db.config.js";
+import { FLOWCHART_PROMPT } from "./prompts.js";
+import { OutputStyle } from "../types/textprocessing.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");

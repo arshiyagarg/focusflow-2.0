@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
-import { Content_outputsContainer } from "../lib/db.config";
+import { Content_outputsContainer } from "../lib/db.config.js";
 //import { processLinkInBackground } from "../utils/linkSummarizer";
 
-import { getOutputStyleOrDefault } from "../utils/valid_get_outputstyles";
-import { processTextWorker } from "../utils/process.text.worker";
-import { extractTextFromURL } from "../utils/linkSummarizer";
-import { getUserPreferences } from "../utils/getUserPreference";
+import { getOutputStyleOrDefault } from "../utils/valid_get_outputstyles.js";
+import { processTextWorker } from "../utils/process.text.worker.js";
+import { extractTextFromURL } from "../utils/linkSummarizer.js";
+import { getUserPreferences } from "../utils/getUserPreference.js";
 
 export const triggerprocessingLink = async (
   req: Request,

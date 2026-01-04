@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { PreferencesContainer } from "../lib/db.config";
+import { PreferencesContainer } from "../lib/db.config.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 

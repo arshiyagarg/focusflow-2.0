@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
-import { Content_outputsContainer } from "../lib/db.config";
+import { Content_outputsContainer } from "../lib/db.config.js";
 //import { processPDFInBackground } from "../utils/PdfSummarizer";
-import { getOutputStyleOrDefault } from "../utils/valid_get_outputstyles";
+import { getOutputStyleOrDefault } from "../utils/valid_get_outputstyles.js";
 //import { processTextWorker } from "../utils/process.text.worker";
-import { processPDFInBackground } from "../utils/PdfSummarizer";
-import { getUserPreferences } from "../utils/getUserPreference";
+import { processPDFInBackground } from "../utils/PdfSummarizer.js";
+import { getUserPreferences } from "../utils/getUserPreference.js";
 export const triggerprocessingPDF = async (
   req: Request,
   res: Response

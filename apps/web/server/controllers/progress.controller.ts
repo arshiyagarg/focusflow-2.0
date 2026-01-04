@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import { Progress } from "../models/progress";
-import { ProgressContainer } from "../lib/db.config";
-import { today, yesterday } from "../utils/date";
+import { Progress } from "../models/progress.js";
+import { ProgressContainer } from "../lib/db.config.js";
+import { today, yesterday } from "../utils/date.js";
 
 export const getOrInitProgress = async (req: Request, res: Response) => {
   const userId = req.user.id;

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { generateMicroQuiz } from "../processors/quiz.processor";
+import { generateMicroQuiz } from "../processors/quiz.processor.js";
 
 export const generateQuiz = async (req: Request, res: Response) => {
   try {

@@ -1,17 +1,17 @@
-import { OutputStyle } from "../types/textprocessing";
+import { OutputStyle } from "../types/textprocessing.js";
 import {
   processSummary,
-} from "../processors/summary.processor";
+} from "../processors/summary.processor.js";
 import {
   processVisual,
-} from "../processors/visual.processor";
+} from "../processors/visual.processor.js";
 import {
   processFlowchart,
-} from "../processors/flowchart.processor";
+} from "../processors/flowchart.processor.js";
 import {
   processFlashcards,
-} from "../processors/flashcard.processor";
-import { Content_outputsContainer } from "../lib/db.config";
+} from "../processors/flashcard.processor.js";
+import { Content_outputsContainer } from "../lib/db.config.js";
 
 export const processTextWorker = async ({
   contentId,

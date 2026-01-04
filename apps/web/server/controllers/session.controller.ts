@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { Request, Response } from "express";
-import { SessionContainer } from "../lib/db.config";
+import { SessionContainer } from "../lib/db.config.js";
 
 export const createOrUpdateSession = async (req: Request, res: Response) => {
   try {

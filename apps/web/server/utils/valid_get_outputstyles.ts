@@ -1,4 +1,4 @@
-import { OUTPUT_STYLE_VALUES, OutputStyle } from "../types/textprocessing";
+import { OUTPUT_STYLE_VALUES, OutputStyle } from "../types/textprocessing.js";
 
 export const isValidOutputStyle = (
   value: any

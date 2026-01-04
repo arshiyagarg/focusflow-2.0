@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { Request, Response } from "express";
-import { Content_outputsContainer } from "../lib/db.config";
+import { Content_outputsContainer } from "../lib/db.config.js";
 
 export const createContentOutput = async (req: Request, res: Response) => {
   console.log("[Content Outputs Controller] createContentOutput Triggered");

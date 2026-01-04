@@ -1,8 +1,8 @@
-import { uploadToBlob } from "../lib/blob.config";
-import { Content_outputsContainer } from "../lib/db.config";
-import { SUMMARY_PROMPT } from "./prompts";
-import { OutputStyle } from "../types/textprocessing";
-import { generateBionicJSON } from "../utils/PdfSummarizer";
+import { uploadToBlob } from "../lib/blob.config.js";
+import { Content_outputsContainer } from "../lib/db.config.js";
+import { SUMMARY_PROMPT } from "./prompts.js";
+import { OutputStyle } from "../types/textprocessing.js";
+import { generateBionicJSON } from "../utils/PdfSummarizer.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");

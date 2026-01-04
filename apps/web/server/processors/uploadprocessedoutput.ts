@@ -1,4 +1,4 @@
-import { uploadToBlob } from "../lib/blob.config";
+import { uploadToBlob } from "../lib/blob.config.js";
 
 /**
  * Uploads processed AI output (summary / visual / flowchart / flashcards)
