@@ -12,6 +12,9 @@ import sessionRoutes from "./routes/session.route.js";
 import quizRoutes from "./routes/quiz.route.js";
 
 import { connectDB } from "./lib/db.config.js";
+
+const FRONTEND_URL = process.env.FRONTEND_URL;
+
 // Professional polyfill to support Azure SDK in Node.js environments
 if (!globalThis.crypto) {
   // @ts-ignore
@@ -30,11 +33,29 @@ const PORT = process.env.PORT;
 const app = express();
 app.set("trust proxy", 1);
 app.use(cookieParser());
-app.use(cors({
-  origin: 'http://localhost:3000', 
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  credentials: true
-}));
+const allowedOrigins = [
+  "http://localhost:3000",
+  FRONTEND_URL,
+].filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    credentials: true,
+  })
+);
+
+// app.options('/:any(.*)', cors());
+
 app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/preferences", preferenceRoutes);

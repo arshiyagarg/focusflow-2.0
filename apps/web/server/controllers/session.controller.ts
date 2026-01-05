@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { Request, Response } from "express";
-import { SessionContainer } from "../lib/db.config.js";
+import { ProgressContainer, SessionContainer } from "../lib/db.config.js";
+import { Progress } from "../models/progress.js";
 
 export const createOrUpdateSession = async (req: Request, res: Response) => {
   try {
@@ -95,6 +96,20 @@ export const endSession = async (req: Request, res: Response) => {
     await SessionContainer
       .item(session.id, session.userId)
       .replace(updatedSession);
+    
+    const { resource: progress } = await ProgressContainer.item(userId, userId).read<Progress>();
+    
+    if (progress) {
+      const updatedProgress = {
+        ...progress,
+        completedSessions: (progress.completedSessions || 0) + 1,
+        updatedAt: new Date().toISOString()
+      };
+      await ProgressContainer.item(userId, userId).replace(updatedProgress);
+      console.log(`[Session Controller] Incremented sessions for user: ${userId}`);
+    }
+    
+      
 
     return res.status(200).json(updatedSession);
   } catch (error) {
