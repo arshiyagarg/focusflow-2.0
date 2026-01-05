@@ -17,7 +17,7 @@ export const ProfileCard = () => {
           <Brain className="w-6 h-6" />
         </div>
         <div>
-          <h3 className="font-bold text-lg">Neuro-Profile</h3>
+          <h3 className="font-bold text-lg">Focus Profile</h3>
           <p className="text-xs text-muted-foreground">Bio-adaptive Configuration</p>
         </div>
       </div>

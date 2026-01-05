@@ -49,9 +49,11 @@ export const getOrInitProgress = async (req: Request, res: Response) => {
     ...resource,
     maxStreak,
     focusStreak: streak,
+    completedSessions: resource.completedSessions || 0,
     lastStreakDate: todayDate,
     lastActive: now,
     updatedAt: now,
+    
   };
 
   await ProgressContainer

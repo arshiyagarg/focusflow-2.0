@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import axios from "axios";
 
+
 const API_URL = import.meta.env.VITE_API_URL;
 axios.defaults.withCredentials = true;
 
@@ -21,9 +22,10 @@ interface ProgressStore {
     progress: Progress | null;
     isLoading: boolean;
     getOrUpdateProgress: () => Promise<boolean>;
+    fetchProgress: () => Promise<boolean>;
 }
 
-export const useProgressStore = create<ProgressStore> ((set) => ({
+export const useProgressStore = create<ProgressStore> ((set,get) => ({
     progress: null,
     isLoading: false,
     getOrUpdateProgress: async () => {
@@ -33,8 +35,12 @@ export const useProgressStore = create<ProgressStore> ((set) => ({
             set({ progress: response.data, isLoading: false });
             return true;
         } catch(error) {
+            console.error("[Progress Store] Fetch error:", error);
             set({ isLoading: false });
             return false;
         }
+    },
+    fetchProgress: async () => {
+        return await get().getOrUpdateProgress();
     }
 }))

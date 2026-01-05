@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import axios from "axios";
 import { useFocusStore } from "./useFocusStore";
+import { useProgressStore } from "./useProgressStore";
+import confetti from "canvas-confetti";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -168,11 +170,7 @@ export const useStudyStore = create<StudyTempState>((set, get) => ({
     const finalFocusScore = useFocusStore.getState().score;
     console.log(`[Study Store] endSession Triggered. Final Score: ${finalFocusScore}`);
 
-    // MOTIVATION TRIGGER: Trigger a "Success" toast for high scores
-  if (finalFocusScore >= 80) {
-    // You can trigger your useToast here
-    console.log("[Dopamine Hit] Achievement Unlocked: High Flow State Session");
-  }
+ 
 
     try {
       // 1. Send final focus score to backend to finalize the session record
@@ -181,6 +179,19 @@ export const useStudyStore = create<StudyTempState>((set, get) => ({
         { focusScore: finalFocusScore },
         { withCredentials: true }
       );
+
+      await useProgressStore.getState().fetchProgress();
+
+      // Dopamine Hit: High score feedback
+      if (finalFocusScore >= 80) {
+        console.log("[FocusFlow] Achievement: High Flow State Session!");
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#26a69a', '#b2dfdb', '#004d40'] // FocusFlow palette
+        });
+      }
 
       console.log("[Study Store] Backend endSession response:", response.data);
 
