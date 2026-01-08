@@ -11,7 +11,8 @@ import {
   Clock,
   Layout,
   MessageSquareText,
-  Target
+  Target,
+  ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
@@ -88,19 +89,12 @@ const Index = () => {
             so <span className="text-[#4A6741] font-semibold underline decoration-2 underline-offset-4">nothing slips away</span> while you learn.
           </p>
 
-         <Button
-  asChild
-  size="lg"
-  className="bg-[#4A6741] hover:bg-[#3D5635] text-lg px-12 h-18 rounded-full shadow-2xl group transition-all"
->
-  <Link
-              ref="https://youtu.be/Ja0k2S8t-PY"
-              target="_blank"
-              rel="noopener noreferrer" to={""}  >
+             <a href="https://youtu.be/Ja0k2S8t-PY" target="_blank" rel="noopener noreferrer">
+  <Button size="lg" className="bg-[#4A6741] hover:bg-[#3D5635] text-lg px-12 h-18 rounded-full shadow-2xl group transition-all">
     Live Demo (2-min)
     <ArrowRight className="w-6 h-6 ml-3 group-hover:translate-x-1 transition-transform" />
-  </Link>
-</Button>
+  </Button>
+</a>
         </section>
 
         {/* 3. THE CENTERPIECE: SELF-RUNNING LIVE DEMO */}

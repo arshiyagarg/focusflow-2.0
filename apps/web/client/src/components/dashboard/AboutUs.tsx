@@ -62,18 +62,17 @@ export const AboutUs = () => {
                 <span className="text-sm font-medium">AI-Powered deep analysis in situ</span>
               </div>
             </div>
-            <Button
-  asChild
-  className="w-full md:w-auto gap-2 shadow-lg shadow-primary/20 group"
+              <a 
+  href="https://www.youtube.com/watch?v=wMww5c-FAO8" 
+  target="_blank" 
+  rel="noopener noreferrer"
+  className="w-full md:w-auto"
 >
-  <Link
-    href="https://www.youtube.com/watch?v=wMww5c-FAO8"
-    target="_blank"
-  >
-    Get Our Extension 
+  <Button className="w-full md:w-auto gap-2 shadow-lg shadow-primary/20 group">
+    Get the Extension
     <ExternalLink className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-  </Link>
-</Button>
+  </Button>
+</a>
           </div>
           <div className="relative aspect-square md:aspect-auto h-64 md:h-full bg-muted rounded-2xl border border-border/50 overflow-hidden flex items-center justify-center group">
             <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent opacity-50" />
